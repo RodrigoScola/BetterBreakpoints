@@ -1,3 +1,4 @@
+import assert from 'assert';
 import { text } from 'express';
 import * as vscode from 'vscode';
 
@@ -134,12 +135,8 @@ function addConditionalBreakpointsOnFile(doc: vscode.TextDocument, regex: RegExp
 	});
 }
 
-export function assert(b: boolean, n: string) {}
-
 export function activate(context: vscode.ExtensionContext) {
 	const other = vscode.commands.registerCommand(makeName('listBreakPoints'), logPoints);
-
-	assert(true === false, 'toehr');
 
 	vscode.commands.registerCommand(makeName('addOnAssert'), () => {
 		const editor = vscode.window.activeTextEditor;
@@ -161,7 +158,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 		console.log(vscode.workspace.workspaceFolders, 'folders');
 
-		const f = await vscode.workspace.findFiles(`**/*.ts`);
+		const f = await vscode.workspace.findFiles(`(**/*.cs|**/*.ts)`, `(\.gitignore)`);
 
 		f.forEach((uri) => {
 			vscode.workspace.openTextDocument(uri).then((document) => {
