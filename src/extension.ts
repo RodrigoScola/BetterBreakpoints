@@ -1,7 +1,16 @@
+import { start } from 'repl';
 import * as vscode from 'vscode';
 
 function makeName(str: string): string {
 	return `debugpoints.${str}`;
+}
+
+function getBreakPointsFromSameFile(all: readonly vscode.Breakpoint[], file: string): MyBreakpoint[] {
+	return all
+		.map((breakpoint) => new MyBreakpoint(breakpoint))
+		.filter((breakpoint) => {
+			return breakpoint.Location().uri.path.slice(1).replaceAll('/', '\\') === file;
+		});
 }
 
 class MyBreakpoint {
@@ -34,30 +43,10 @@ class MyBreakpoint {
 	}
 }
 
-function removeFromFile() {
-	const all = vscode.debug.breakpoints.map((b) => new MyBreakpoint(b));
-
-	if (all.length === 0) {
-		console.warn('no breakpoint found');
-		return;
-	}
-
-	const file = vscode.window.activeTextEditor?.document.fileName;
-	const sameFile = all.filter((breakpoint) => {
-		return breakpoint.Location().uri.path.slice(1).replaceAll('/', '\\') === file;
-	});
-
-	console.log(
-		sameFile.map((f) => {
-			return f;
-		})
-	);
-
-	// vscode.debug.removeBreakpoints(sameFile);
-}
-
 async function logPoints() {
 	const all = vscode.debug.breakpoints.map((b) => new MyBreakpoint(b));
+
+	console.log(all);
 
 	if (all.length === 0) {
 		console.warn('no breakpoint found');
@@ -101,12 +90,65 @@ async function logPoints() {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-	const disposable = vscode.commands.registerCommand(makeName('helloWorld'), removeFromFile);
 	const other = vscode.commands.registerCommand(makeName('listBreakPoints'), logPoints);
 
-	const editor = removeFromFile();
+	vscode.commands.registerCommand(makeName('addOnAssert'), () => {
+		const editor = vscode.window.activeTextEditor;
 
-	context.subscriptions.push(disposable);
+		if (!editor) {
+			console.warn('no editor');
+			return;
+		}
+
+		const filename = editor.document.fileName;
+
+		const sameFile = getBreakPointsFromSameFile(vscode.debug.breakpoints, filename);
+
+		let text = editor?.document.getText().toLowerCase();
+
+		const regex = /\bassert(?:\.\w+)?\s*\(\s*([^,]+)\s*,\s*(['"][^'"]+['"])?\s*\)/g;
+
+		const positions: { message: string; pos: vscode.Position; condition: string }[] = [];
+
+		let match: RegExpExecArray | null;
+
+		while ((match = regex.exec(text)) !== null) {
+			const nextInd = match.index;
+			const condition = match[1];
+			const message = match[2];
+			const pos = editor.document.positionAt(nextInd);
+
+			if (!pos) {
+				return;
+			}
+			positions.push({
+				condition,
+				pos,
+				message,
+			});
+		}
+
+		positions.forEach((pos) => {
+			const br = new vscode.SourceBreakpoint(
+				new vscode.Location(editor!.document.uri, pos.pos),
+				true,
+				pos.condition,
+				undefined,
+				pos.message
+			);
+
+			const oldBreakpoint = sameFile.find((f) => f.Location().range.start.isEqual(pos.pos));
+
+			if (oldBreakpoint) {
+				vscode.debug.removeBreakpoints([oldBreakpoint.breakpoint]);
+			}
+
+			vscode.debug.addBreakpoints([br]);
+		});
+
+		console.log('positions', positions);
+	});
+
 	context.subscriptions.push(other);
 }
 

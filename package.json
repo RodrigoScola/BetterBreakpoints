@@ -19,6 +19,10 @@
 			{
 				"command": "debugpoints.listBreakPoints",
 				"title": "List All Break Points"
+			},
+			{
+				"command": "debugpoints.addOnAssert",
+				"title": "add commands on assert condition"
 			}
 		]
 	},
