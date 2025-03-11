@@ -1,4 +1,4 @@
-import { start } from 'repl';
+import { text } from 'express';
 import * as vscode from 'vscode';
 
 function makeName(str: string): string {
@@ -89,8 +89,57 @@ async function logPoints() {
 	// vscode.debug.removeBreakpoints(sameFile);
 }
 
+function addConditionalBreakpointsOnFile(doc: vscode.TextDocument, regex: RegExp) {
+	let match: RegExpExecArray | null;
+
+	const text = doc.getText().toLocaleLowerCase();
+
+	const filename = doc.fileName;
+
+	const sameFile = getBreakPointsFromSameFile(vscode.debug.breakpoints, filename);
+
+	const positions: { message: string; pos: vscode.Position; condition: string }[] = [];
+	while ((match = regex.exec(text)) !== null) {
+		const nextInd = match.index;
+		const condition = match[1];
+		const message = match[2];
+		const pos = doc.positionAt(nextInd);
+
+		if (!pos) {
+			return;
+		}
+		positions.push({
+			condition,
+			pos,
+			message,
+		});
+	}
+
+	positions.forEach((pos) => {
+		const br = new vscode.SourceBreakpoint(
+			new vscode.Location(doc.uri, pos.pos),
+			true,
+			pos.condition,
+			undefined,
+			pos.message
+		);
+
+		const oldBreakpoint = sameFile.find((f) => f.Location().range.start.isEqual(pos.pos));
+
+		if (oldBreakpoint) {
+			vscode.debug.removeBreakpoints([oldBreakpoint.breakpoint]);
+		}
+
+		vscode.debug.addBreakpoints([br]);
+	});
+}
+
+export function assert(b: boolean, n: string) {}
+
 export function activate(context: vscode.ExtensionContext) {
 	const other = vscode.commands.registerCommand(makeName('listBreakPoints'), logPoints);
+
+	assert(true === false, 'toehr');
 
 	vscode.commands.registerCommand(makeName('addOnAssert'), () => {
 		const editor = vscode.window.activeTextEditor;
@@ -100,53 +149,29 @@ export function activate(context: vscode.ExtensionContext) {
 			return;
 		}
 
-		const filename = editor.document.fileName;
+		const regex = /\bassert(?:\.\w+)?\s*\(\s*([^,]+)\s*,\s*(['"][^'"]+['"])?\s*\)/g;
 
-		const sameFile = getBreakPointsFromSameFile(vscode.debug.breakpoints, filename);
+		addConditionalBreakpointsOnFile(editor.document, regex);
+	});
 
-		let text = editor?.document.getText().toLowerCase();
+	vscode.commands.registerCommand(makeName('projectAddOnAssert'), async () => {
+		const editor = vscode.window.activeTextEditor;
 
 		const regex = /\bassert(?:\.\w+)?\s*\(\s*([^,]+)\s*,\s*(['"][^'"]+['"])?\s*\)/g;
 
-		const positions: { message: string; pos: vscode.Position; condition: string }[] = [];
+		console.log(vscode.workspace.workspaceFolders, 'folders');
 
-		let match: RegExpExecArray | null;
+		const f = await vscode.workspace.findFiles(`**/*.ts`);
 
-		while ((match = regex.exec(text)) !== null) {
-			const nextInd = match.index;
-			const condition = match[1];
-			const message = match[2];
-			const pos = editor.document.positionAt(nextInd);
+		f.forEach((uri) => {
+			vscode.workspace.openTextDocument(uri).then((document) => {
+				// Now you have the TextDocument, and you can access its content, language, etc.
+				console.log('Document opened:', document.uri.fsPath);
+				console.log('Document content:', document.getText());
 
-			if (!pos) {
-				return;
-			}
-			positions.push({
-				condition,
-				pos,
-				message,
+				addConditionalBreakpointsOnFile(document, regex);
 			});
-		}
-
-		positions.forEach((pos) => {
-			const br = new vscode.SourceBreakpoint(
-				new vscode.Location(editor!.document.uri, pos.pos),
-				true,
-				pos.condition,
-				undefined,
-				pos.message
-			);
-
-			const oldBreakpoint = sameFile.find((f) => f.Location().range.start.isEqual(pos.pos));
-
-			if (oldBreakpoint) {
-				vscode.debug.removeBreakpoints([oldBreakpoint.breakpoint]);
-			}
-
-			vscode.debug.addBreakpoints([br]);
 		});
-
-		console.log('positions', positions);
 	});
 
 	context.subscriptions.push(other);
