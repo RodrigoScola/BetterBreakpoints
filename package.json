@@ -1,15 +1,27 @@
 {
+	"publisher": "rodrigoscola",
 	"name": "betterbreakpoints",
+	"icon": "docs/icon.png",
 	"displayName": "Better Breakpoints",
 	"description": "A more complete visual studio code breakpoint implementation",
 	"version": "0.0.2",
 	"engines": {
 		"vscode": "^1.98.0"
 	},
+	"bugs": {
+		"url": "https://github.com/RodrigoScola/BetterBreakpoints",
+		"email": "rodrigo.sgarabotto.scola@gmail.com"
+	},
 	"author": {
 		"name": "Rodrigo Scola",
 		"url": "https://github.com/RodrigoScola"
 	},
+	"keywords": [
+		"breakpoints",
+		"betterBreakpoints",
+		"debug",
+		"debugging"
+	],
 	"categories": [
 		"Debuggers",
 		"Other"
