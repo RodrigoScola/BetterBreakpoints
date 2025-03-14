@@ -1,104 +1,110 @@
 {
-	"name": "debugpoints",
-	"displayName": "debugPoints",
-	"description": "",
-	"version": "0.0.1",
+	"name": "betterbreakpoints",
+	"displayName": "Better Breakpoints",
+	"description": "A more complete visual studio code breakpoint implementation",
+	"version": "0.0.2",
 	"engines": {
 		"vscode": "^1.98.0"
 	},
+	"author": {
+		"name": "Rodrigo Scola",
+		"url": "https://github.com/RodrigoScola"
+	},
 	"categories": [
+		"Debuggers",
 		"Other"
 	],
 	"repository": {
-		"url": "https://github.com/RodrigoScola/DebugPoints"
+		"url": "https://github.com/RodrigoScola/BetterBreakpoints"
 	},
+	"homepage": "https://github.com/RodrigoScola/BetterBreakpoints",
 	"activationEvents": [],
 	"main": "./dist/extension.js",
 	"contributes": {
 		"commands": [
 			{
 				"command": "debugpoints.listBreakPoints",
-				"title": "List All Break Points"
+				"title": "List All Breakpoints"
 			},
 			{
 				"command": "debugpoints.addOnAssert",
-				"title": "add commands on assert condition"
+				"title": "Add commands on assert condition"
 			},
 			{
 				"command": "debugpoints.projectAddOnAssert",
-				"title": "add on project assert"
+				"title": "Add on project assert"
 			},
 			{
 				"command": "debugpoints.remove.logpoints.file",
-				"title": "remove logpoints from file"
+				"title": "Remove logpoints from file"
 			},
 			{
 				"command": "debugpoints.disable.logpoints.file",
-				"title": "disable logpoints from file"
+				"title": "Disable logpoints from file"
 			},
 			{
 				"command": "debugpoints.enable.logpoints.file",
-				"title": "disable logpoints from file"
+				"title": "Enable logpoints from file"
 			},
 			{
 				"command": "debugpoints.remove.breakpoints.file",
-				"title": "remove breakpoints from file"
+				"title": "Remove breakpoints from file"
 			},
 			{
 				"command": "debugpoints.disable.breakpoints.file",
-				"title": "disable breakpoints from file"
+				"title": "Disable breakpoints from file"
 			},
 			{
 				"command": "debugpoints.enable.breakpoints.file",
-				"title": "disable breakpoints from file"
+				"title": "Enable breakpoints from file"
 			},
 			{
 				"command": "debugpoints.remove.conditionals.file",
-				"title": "remove conditionals from file"
+				"title": "Remove conditionals from file"
 			},
 			{
 				"command": "debugpoints.disable.conditionals.file",
-				"title": "disable conditionals from file"
+				"title": "Disable conditionals from file"
 			},
 			{
 				"command": "debugpoints.enable.conditionals.file",
-				"title": "disable breakpoints from file"
+				"title": "Enable breakpoints from file"
 			},
 			{
 				"command": "debugpoints.remove.logpoints.workspace",
-				"title": "remove logpoints from workspace"
+				"title": "Remove logpoints from workspace"
 			},
 			{
 				"command": "debugpoints.disable.logpoints.workspace",
-				"title": "disable logpoints from workspace"
+				"title": "Disable logpoints from workspace"
 			},
 			{
 				"command": "debugpoints.enable.logpoints.workspace",
-				"title": "disable logpoints from workspace"
+				"title": "Enable logpoints from workspace"
 			},
 			{
 				"command": "debugpoints.remove.breakpoints.workspace",
-				"title": "remove breakpoints from workspace"
+				"title": "Remove breakpoints from workspace"
 			},
 			{
 				"command": "debugpoints.disable.breakpoints.workspace",
-				"title": "disable breakpoints from workspace"
+				"title": "Disable breakpoints from workspace"
 			},
 			{
 				"command": "debugpoints.enable.breakpoints.workspace",
-				"title": "disable breakpoints from workspace"
+				"title": "Enable breakpoints from workspace"
 			},
 			{
 				"command": "debugpoints.remove.conditionals.workspace",
-				"title": "remove conditionals from workspace"
+				"title": "Remove conditionals from workspace"
 			},
 			{
 				"command": "debugpoints.disable.conditionals.workspace",
-				"title": "disable conditionals from workspace"
+				"title": "Disable conditionals from workspace"
 			},
 			{
 				"command": "debugpoints.enable.conditionals.workspace",
-				"title": "disable breakpoints from workspace"
+				"title": "Enable breakpoints from workspace"
 			}
 		]
 	},
