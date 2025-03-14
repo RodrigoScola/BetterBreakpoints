@@ -1,93 +1,114 @@
 import assert from 'assert';
-import { text } from 'express';
 import * as vscode from 'vscode';
+import { MyBreakpoint } from './breakpoint';
+import {
+	BreakPointAction,
+	filterLog,
+	getBreakpointFromFile,
+	disableBreakpoint,
+	enableBreakPoint,
+	filterBreakpoint,
+	filterConditional,
+	filterHitCondition,
+	getBreakpointFromWorkspace,
+} from './actions';
 
 function makeName(str: string): string {
 	return `debugpoints.${str}`;
 }
 
-function getBreakPointsFromSameFile(all: readonly vscode.Breakpoint[], file: string): MyBreakpoint[] {
-	return all
-		.map((breakpoint) => new MyBreakpoint(breakpoint))
-		.filter((breakpoint) => {
-			return breakpoint.Location().uri.path.slice(1).replaceAll('/', '\\') === file;
-		});
-}
-
-class MyBreakpoint {
-	public breakpoint: vscode.Breakpoint;
-	constructor(breakpoint: vscode.Breakpoint) {
-		this.breakpoint = breakpoint;
-	}
-	public isLog() {
-		return typeof this.breakpoint.logMessage === 'undefined';
-	}
-	public Location() {
-		//@ts-ignore
-		return this.breakpoint.location as { uri: { path: string }; range: vscode.Range };
-	}
-
-	toString(): string {
-		if (this.breakpoint.logMessage) {
-			return this.breakpoint.logMessage;
-		}
-
-		const filename = this.Location().uri.path.split('/').at(-1);
-
-		const line = this.Location().range.start.line;
-		const char = this.Location().range.start.character;
-
-		if (filename) {
-			return `${filename} [${line}:${char}]`;
-		}
-		return this.breakpoint.id;
-	}
+function getCurrentPath() {
+	return (
+		vscode.workspace.workspaceFolders?.at(0)?.uri.path ??
+		vscode.workspace.workspaceFile?.path ??
+		vscode.window.activeTextEditor?.document.uri.path
+	);
 }
 
 async function logPoints() {
-	const all = vscode.debug.breakpoints.map((b) => new MyBreakpoint(b));
+	const workspace = vscode.workspace;
 
-	console.log(all);
-
-	if (all.length === 0) {
-		console.warn('no breakpoint found');
-		return;
-	}
-	const editor = vscode.window.activeTextEditor!;
-
-	if (!editor) {
-		console.warn(`no editor to be found`);
+	if (!workspace) {
+		console.warn('there is no active workspace');
 		return;
 	}
 
-	const file = editor.document.fileName;
+	let basePath: string | undefined = getCurrentPath();
 
-	// const sameFile = all.filter((breakpoint) => {
-	// 	return breakpoint.Location().uri.path.slice(1).replaceAll('/', '\\') === file;
-	// });
-
-	const sameFile = all;
-
-	const selection = await vscode.window.showQuickPick(sameFile.map((f) => f.toString()));
-
-	if (!selection) {
-		console.warn(`no item was selected`);
+	if (!basePath) {
+		console.warn('there is no open file');
 		return;
 	}
 
-	const br = sameFile.filter((f) => f.toString() === selection).at(0)!;
+	const uniqueBreakpoints = Array.from(
+		new Set(
+			vscode.debug.breakpoints
+				.map((b) => new MyBreakpoint(b))
+				.filter((breakpoint) => breakpoint.inWorkspace(basePath))
+		)
+	);
 
-	const range = br.Location().range;
+	goTobreakpoint(uniqueBreakpoints);
+}
 
-	const start = new vscode.Position(range.start.line, range.start.character);
+async function goTobreakpoint(points: MyBreakpoint[]) {
+	const editor = vscode.window.activeTextEditor;
 
-	const rng = new vscode.Range(start, new vscode.Position(range.end.line, range.end.character));
+	if (editor) {
+		const editorPath = editor.document.uri.path;
+		points = points.sort((a, b) => (a.Location().uri.path === editorPath ? -1 : 1));
+	}
 
-	editor.selection = new vscode.Selection(start, start);
+	let basePath = '';
+	if (vscode.workspace.workspaceFolders) {
+		basePath = vscode.workspace.workspaceFolders.find((i) => i)?.uri.path || '';
+	}
 
-	editor.revealRange(rng);
+	let quickPickItems: vscode.QuickPickItem[] = points.map((f) => ({
+		label: f.toString(),
+		description: f.Location().uri.path.replace(basePath, ''),
+	}));
+	const promises = await Promise.allSettled(points.map(async (f) => f.Document()));
 
-	// vscode.debug.removeBreakpoints(sameFile);
+	const pick = vscode.window.createQuickPick();
+	pick.ignoreFocusOut = true;
+
+	pick.items = quickPickItems;
+	pick.activeItems = [pick.items[0]];
+
+	pick.onDidChangeActive(async (selection) => {
+		const selected = selection[0];
+
+		pick.activeItems = [selected];
+
+		const item = points.find((x) => x.toString() === selected.label);
+		assert(item, `there is no item with the selected string ${selected.label}`);
+
+		var uri = vscode.Uri.file(item.Location().uri.path);
+
+		const doc = promises.find(
+			(promise) => promise.status === 'fulfilled' && promise.value.uri.path === uri.path
+		);
+		assert(doc, 'document is not in the documents');
+
+		if (doc.status === 'rejected') {
+			console.error('operation failed: ', doc.reason);
+			return;
+		}
+
+		await vscode.window.showTextDocument(doc.value, {
+			preserveFocus: true,
+		});
+
+		if (editor) {
+			const range = item.Location().range;
+			editor.selection = new vscode.Selection(range.start, range.start);
+			editor.revealRange(range);
+		}
+	});
+
+	pick.onDidAccept(pick.hide);
+	pick.show();
 }
 
 function addConditionalBreakpointsOnFile(doc: vscode.TextDocument, regex: RegExp) {
@@ -95,9 +116,7 @@ function addConditionalBreakpointsOnFile(doc: vscode.TextDocument, regex: RegExp
 
 	const text = doc.getText().toLocaleLowerCase();
 
-	const filename = doc.fileName;
-
-	const sameFile = getBreakPointsFromSameFile(vscode.debug.breakpoints, filename);
+	const sameFile = getBreakpointFromFile(doc.uri.path);
 
 	const positions: { message: string; pos: vscode.Position; condition: string }[] = [];
 	while ((match = regex.exec(text)) !== null) {
@@ -116,7 +135,7 @@ function addConditionalBreakpointsOnFile(doc: vscode.TextDocument, regex: RegExp
 		});
 	}
 
-	positions.forEach((pos) => {
+	for (const pos of positions) {
 		const br = new vscode.SourceBreakpoint(
 			new vscode.Location(doc.uri, pos.pos),
 			true,
@@ -132,13 +151,16 @@ function addConditionalBreakpointsOnFile(doc: vscode.TextDocument, regex: RegExp
 		}
 
 		vscode.debug.addBreakpoints([br]);
-	});
+	}
 }
 
 export function activate(context: vscode.ExtensionContext) {
-	const other = vscode.commands.registerCommand(makeName('listBreakPoints'), logPoints);
+	function addCommand(name: string, fn: () => void): void {
+		context.subscriptions.push(vscode.commands.registerCommand(name, fn));
+	}
 
-	vscode.commands.registerCommand(makeName('addOnAssert'), () => {
+	addCommand(makeName('listBreakPoints'), logPoints);
+	addCommand(makeName('addOnAssert'), () => {
 		const editor = vscode.window.activeTextEditor;
 
 		if (!editor) {
@@ -151,16 +173,14 @@ export function activate(context: vscode.ExtensionContext) {
 		addConditionalBreakpointsOnFile(editor.document, regex);
 	});
 
-	vscode.commands.registerCommand(makeName('projectAddOnAssert'), async () => {
+	addCommand(makeName('projectAddOnAssert'), async () => {
 		const editor = vscode.window.activeTextEditor;
 
 		const regex = /\bassert(?:\.\w+)?\s*\(\s*([^,]+)\s*,\s*(['"][^'"]+['"])?\s*\)/g;
 
 		console.log(vscode.workspace.workspaceFolders, 'folders');
 
-		const f = await vscode.workspace.findFiles(`(**/*.cs|**/*.ts)`, `(\.gitignore)`);
-
-		f.forEach((uri) => {
+		(await vscode.workspace.findFiles(`**/*.cs`, `(\.gitignore)`)).forEach((uri) => {
 			vscode.workspace.openTextDocument(uri).then((document) => {
 				// Now you have the TextDocument, and you can access its content, language, etc.
 				console.log('Document opened:', document.uri.fsPath);
@@ -171,7 +191,239 @@ export function activate(context: vscode.ExtensionContext) {
 		});
 	});
 
-	context.subscriptions.push(other);
+	//logpointActions
+	addCommand(makeName('remove.logpoints.file'), async () => {
+		const removeAc = new BreakPointAction();
+
+		removeAc
+			.setFilter(filterLog)
+			.setGetter(getBreakpointFromFile)
+			.SetAction((b) => {
+				vscode.debug.removeBreakpoints([b.breakpoint]);
+			});
+
+		removeAc.Use();
+	});
+
+	addCommand(makeName('disable.logpoints.file'), async () => {
+		new BreakPointAction()
+			.SetAction(disableBreakpoint)
+			.setGetter(getBreakpointFromFile)
+			.setFilter(filterLog)
+			.Use();
+	});
+
+	addCommand(makeName('enable.logpoints.file'), async () => {
+		new BreakPointAction()
+			.SetAction(enableBreakPoint)
+			.setGetter(getBreakpointFromFile)
+			.setFilter(filterLog)
+			.Use();
+	});
+
+	addCommand(makeName('remove.breakpoints.file'), async () => {
+		const removeAc = new BreakPointAction();
+
+		removeAc
+			.setFilter(filterBreakpoint)
+			.setGetter(getBreakpointFromFile)
+			.SetAction((b) => {
+				vscode.debug.removeBreakpoints([b.breakpoint]);
+			});
+
+		removeAc.Use();
+	});
+
+	addCommand(makeName('disable.breakpoints.file'), async () => {
+		new BreakPointAction()
+			.SetAction(disableBreakpoint)
+			.setGetter(getBreakpointFromFile)
+			.setFilter(filterBreakpoint)
+			.Use();
+	});
+
+	addCommand(makeName('enable.breakpoints.file'), async () => {
+		new BreakPointAction()
+			.SetAction(enableBreakPoint)
+			.setGetter(getBreakpointFromFile)
+			.setFilter(filterBreakpoint)
+			.Use();
+	});
+
+	addCommand(makeName('remove.conditionals.file'), async () => {
+		const removeAc = new BreakPointAction();
+
+		removeAc
+			.setFilter(filterConditional)
+			.setGetter(getBreakpointFromFile)
+			.SetAction((b) => {
+				vscode.debug.removeBreakpoints([b.breakpoint]);
+			});
+
+		removeAc.Use();
+	});
+
+	addCommand(makeName('disable.conditionals.file'), async () => {
+		new BreakPointAction()
+			.SetAction(disableBreakpoint)
+			.setGetter(getBreakpointFromFile)
+			.setFilter(filterConditional)
+			.Use();
+	});
+
+	addCommand(makeName('enable.conditionals.file'), async () => {
+		new BreakPointAction()
+			.SetAction(enableBreakPoint)
+			.setGetter(getBreakpointFromFile)
+			.setFilter(filterConditional)
+			.Use();
+	});
+
+	addCommand(makeName('remove.conditionals.file'), async () => {
+		const removeAc = new BreakPointAction();
+
+		removeAc
+			.setFilter(filterHitCondition)
+			.setGetter(getBreakpointFromFile)
+			.SetAction((b) => {
+				vscode.debug.removeBreakpoints([b.breakpoint]);
+			});
+
+		removeAc.Use();
+	});
+
+	addCommand(makeName('disable.conditionals.file'), async () => {
+		new BreakPointAction()
+			.SetAction(disableBreakpoint)
+			.setGetter(getBreakpointFromFile)
+			.setFilter(filterHitCondition)
+			.Use();
+	});
+
+	addCommand(makeName('enable.conditionals.file'), async () => {
+		new BreakPointAction()
+			.SetAction(enableBreakPoint)
+			.setGetter(getBreakpointFromFile)
+			.setFilter(filterHitCondition)
+			.Use();
+	});
+
+	//workspace actions
+	addCommand(makeName('remove.logpoints.workspace'), async () => {
+		const removeAc = new BreakPointAction();
+
+		removeAc
+			.setFilter(filterLog)
+			.setGetter(getBreakpointFromWorkspace)
+			.SetAction((b) => {
+				vscode.debug.removeBreakpoints([b.breakpoint]);
+			});
+
+		removeAc.Use();
+	});
+
+	addCommand(makeName('disable.logpoints.workspace'), async () => {
+		new BreakPointAction()
+			.SetAction(disableBreakpoint)
+			.setGetter(getBreakpointFromWorkspace)
+			.setFilter(filterLog)
+			.Use();
+	});
+
+	addCommand(makeName('enable.logpoints.workspace'), async () => {
+		new BreakPointAction()
+			.SetAction(enableBreakPoint)
+			.setGetter(getBreakpointFromWorkspace)
+			.setFilter(filterLog)
+			.Use();
+	});
+
+	addCommand(makeName('remove.breakpoints.workspace'), async () => {
+		const removeAc = new BreakPointAction();
+
+		removeAc
+			.setFilter(filterBreakpoint)
+			.setGetter(getBreakpointFromWorkspace)
+			.SetAction((b) => {
+				vscode.debug.removeBreakpoints([b.breakpoint]);
+			});
+
+		removeAc.Use();
+	});
+
+	addCommand(makeName('disable.breakpoints.workspace'), async () => {
+		new BreakPointAction()
+			.SetAction(disableBreakpoint)
+			.setGetter(getBreakpointFromWorkspace)
+			.setFilter(filterBreakpoint)
+			.Use();
+	});
+
+	addCommand(makeName('enable.breakpoints.workspace'), async () => {
+		new BreakPointAction()
+			.SetAction(enableBreakPoint)
+			.setGetter(getBreakpointFromWorkspace)
+			.setFilter(filterBreakpoint)
+			.Use();
+	});
+
+	addCommand(makeName('remove.conditionals.workspace'), async () => {
+		const removeAc = new BreakPointAction();
+
+		removeAc
+			.setFilter(filterConditional)
+			.setGetter(getBreakpointFromWorkspace)
+			.SetAction((b) => {
+				vscode.debug.removeBreakpoints([b.breakpoint]);
+			});
+
+		removeAc.Use();
+	});
+
+	addCommand(makeName('disable.conditionals.workspace'), async () => {
+		new BreakPointAction()
+			.SetAction(disableBreakpoint)
+			.setGetter(getBreakpointFromWorkspace)
+			.setFilter(filterConditional)
+			.Use();
+	});
+
+	addCommand(makeName('enable.conditionals.workspace'), async () => {
+		new BreakPointAction()
+			.SetAction(enableBreakPoint)
+			.setGetter(getBreakpointFromWorkspace)
+			.setFilter(filterConditional)
+			.Use();
+	});
+
+	addCommand(makeName('remove.conditionals.workspace'), async () => {
+		const removeAc = new BreakPointAction();
+
+		removeAc
+			.setFilter(filterHitCondition)
+			.setGetter(getBreakpointFromWorkspace)
+			.SetAction((b) => {
+				vscode.debug.removeBreakpoints([b.breakpoint]);
+			});
+
+		removeAc.Use();
+	});
+
+	addCommand(makeName('disable.conditionals.workspace'), async () => {
+		new BreakPointAction()
+			.SetAction(disableBreakpoint)
+			.setGetter(getBreakpointFromWorkspace)
+			.setFilter(filterHitCondition)
+			.Use();
+	});
+
+	addCommand(makeName('enable.conditionals.workspace'), async () => {
+		new BreakPointAction()
+			.SetAction(enableBreakPoint)
+			.setGetter(getBreakpointFromWorkspace)
+			.setFilter(filterHitCondition)
+			.Use();
+	});
 }
 
 export function deactivate() {}

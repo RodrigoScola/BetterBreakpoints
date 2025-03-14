@@ -27,6 +27,78 @@
 			{
 				"command": "debugpoints.projectAddOnAssert",
 				"title": "add on project assert"
+			},
+			{
+				"command": "debugpoints.remove.logpoints.file",
+				"title": "remove logpoints from file"
+			},
+			{
+				"command": "debugpoints.disable.logpoints.file",
+				"title": "disable logpoints from file"
+			},
+			{
+				"command": "debugpoints.enable.logpoints.file",
+				"title": "disable logpoints from file"
+			},
+			{
+				"command": "debugpoints.remove.breakpoints.file",
+				"title": "remove breakpoints from file"
+			},
+			{
+				"command": "debugpoints.disable.breakpoints.file",
+				"title": "disable breakpoints from file"
+			},
+			{
+				"command": "debugpoints.enable.breakpoints.file",
+				"title": "disable breakpoints from file"
+			},
+			{
+				"command": "debugpoints.remove.conditionals.file",
+				"title": "remove conditionals from file"
+			},
+			{
+				"command": "debugpoints.disable.conditionals.file",
+				"title": "disable conditionals from file"
+			},
+			{
+				"command": "debugpoints.enable.conditionals.file",
+				"title": "disable breakpoints from file"
+			},
+			{
+				"command": "debugpoints.remove.logpoints.workspace",
+				"title": "remove logpoints from workspace"
+			},
+			{
+				"command": "debugpoints.disable.logpoints.workspace",
+				"title": "disable logpoints from workspace"
+			},
+			{
+				"command": "debugpoints.enable.logpoints.workspace",
+				"title": "disable logpoints from workspace"
+			},
+			{
+				"command": "debugpoints.remove.breakpoints.workspace",
+				"title": "remove breakpoints from workspace"
+			},
+			{
+				"command": "debugpoints.disable.breakpoints.workspace",
+				"title": "disable breakpoints from workspace"
+			},
+			{
+				"command": "debugpoints.enable.breakpoints.workspace",
+				"title": "disable breakpoints from workspace"
+			},
+			{
+				"command": "debugpoints.remove.conditionals.workspace",
+				"title": "remove conditionals from workspace"
+			},
+			{
+				"command": "debugpoints.disable.conditionals.workspace",
+				"title": "disable conditionals from workspace"
+			},
+			{
+				"command": "debugpoints.enable.conditionals.workspace",
+				"title": "disable breakpoints from workspace"
 			}
 		]
 	},
