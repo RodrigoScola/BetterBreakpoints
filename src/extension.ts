@@ -279,7 +279,7 @@ export function activate(context: vscode.ExtensionContext) {
 			.Use();
 	});
 
-	addCommand(makeName('remove.conditionals.file'), async () => {
+	addCommand(makeName('remove.hitConditionals.file'), async () => {
 		const removeAc = new BreakPointAction();
 
 		removeAc
@@ -292,7 +292,7 @@ export function activate(context: vscode.ExtensionContext) {
 		removeAc.Use();
 	});
 
-	addCommand(makeName('disable.conditionals.file'), async () => {
+	addCommand(makeName('disable.hitConditionals.file'), async () => {
 		new BreakPointAction()
 			.SetAction(disableBreakpoint)
 			.setGetter(getBreakpointFromFile)
@@ -300,7 +300,7 @@ export function activate(context: vscode.ExtensionContext) {
 			.Use();
 	});
 
-	addCommand(makeName('enable.conditionals.file'), async () => {
+	addCommand(makeName('enable.hitConditionals.file'), async () => {
 		new BreakPointAction()
 			.SetAction(enableBreakPoint)
 			.setGetter(getBreakpointFromFile)
@@ -396,7 +396,7 @@ export function activate(context: vscode.ExtensionContext) {
 			.Use();
 	});
 
-	addCommand(makeName('remove.conditionals.workspace'), async () => {
+	addCommand(makeName('remove.hitConditionals.workspace'), async () => {
 		const removeAc = new BreakPointAction();
 
 		removeAc
@@ -409,7 +409,7 @@ export function activate(context: vscode.ExtensionContext) {
 		removeAc.Use();
 	});
 
-	addCommand(makeName('disable.conditionals.workspace'), async () => {
+	addCommand(makeName('disable.hitConditionals.workspace'), async () => {
 		new BreakPointAction()
 			.SetAction(disableBreakpoint)
 			.setGetter(getBreakpointFromWorkspace)
@@ -417,7 +417,7 @@ export function activate(context: vscode.ExtensionContext) {
 			.Use();
 	});
 
-	addCommand(makeName('enable.conditionals.workspace'), async () => {
+	addCommand(makeName('enable.hitConditionals.workspace'), async () => {
 		new BreakPointAction()
 			.SetAction(enableBreakPoint)
 			.setGetter(getBreakpointFromWorkspace)

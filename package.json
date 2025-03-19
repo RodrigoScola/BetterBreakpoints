@@ -4,7 +4,7 @@
 	"icon": "docs/icon.png",
 	"displayName": "Better Breakpoints",
 	"description": "A more complete visual studio code breakpoint implementation",
-	"version": "0.0.3",
+	"version": "0.0.4",
 	"engines": {
 		"vscode": "^1.98.0"
 	},
@@ -117,6 +117,18 @@
 			{
 				"command": "debugpoints.enable.conditionals.workspace",
 				"title": "Enable breakpoints from workspace"
+			},
+			{
+				"command": "debugpoints.remove.hitConditionals.workspace",
+				"title": "Remove hit Conditions from workspace"
+			},
+			{
+				"command": "debugpoints.disable.hitConditionals.workspace",
+				"title": "Disable hit Conditions from workspace"
+			},
+			{
+				"command": "debugpoints.enable.hitConditionals.workspace",
+				"title": "Enable hit Conditions from workspace"
 			}
 		]
 	},
