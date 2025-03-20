@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 
+export const oneTimeMessage = 'betterBreakpoints.triggeredBreakpoint';
+
 type DebugLocation = {
 	uri: {
 		$mid: number;
@@ -45,6 +47,10 @@ export class MyBreakpoint {
 	}
 	public LogMessage(): string | undefined {
 		return this.breakpoint.logMessage;
+	}
+
+	public isOneTime() {
+		return this.breakpoint.logMessage === oneTimeMessage;
 	}
 	public FileName(): string {
 		return this.Location().uri.path.split('/').at(-1) ?? '';

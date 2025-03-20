@@ -50,6 +50,11 @@ export function filterBreakpoint(b: MyBreakpoint): boolean {
 export function filterLog(b: MyBreakpoint): boolean {
 	return b.isLog();
 }
+
+export function filterOneTime(b: MyBreakpoint): boolean {
+	return b.isOneTime();
+}
+
 export function getBreakpointFromWorkspace(): MyBreakpoint[] {
 	let filepath = vscode.workspace.workspaceFolders;
 

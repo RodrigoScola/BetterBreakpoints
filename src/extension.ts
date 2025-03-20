@@ -1,6 +1,6 @@
 import assert from 'assert';
 import * as vscode from 'vscode';
-import { MyBreakpoint } from './breakpoint';
+import { MyBreakpoint, oneTimeMessage } from './breakpoint';
 import {
 	BreakPointAction,
 	filterLog,
@@ -11,8 +11,8 @@ import {
 	filterConditional,
 	filterHitCondition,
 	getBreakpointFromWorkspace,
+	filterOneTime,
 } from './actions';
-import { isArray, isArray, isArray } from 'util';
 
 function makeName(str: string): string {
 	return `debugpoints.${str}`;
@@ -152,17 +152,14 @@ function addConditionalBreakpointsOnFile(doc: vscode.TextDocument, regex: RegExp
 	}
 }
 
-const triggeredMessage = 'betterBreakpoints.triggeredBreakpoint';
-
 export function activate(context: vscode.ExtensionContext) {
 	function addCommand(name: string, fn: () => void): void {
 		context.subscriptions.push(vscode.commands.registerCommand(name, fn));
 	}
 
-	let hitBreakpointIds: number[] = [];
-
 	vscode.debug.registerDebugAdapterTrackerFactory('*', {
 		createDebugAdapterTracker(session) {
+			let hitBreakpointIds: number[] = [];
 			return {
 				onDidSendMessage: async (message) => {
 					if (
@@ -180,7 +177,7 @@ export function activate(context: vscode.ExtensionContext) {
 										!('id' in f) ||
 										typeof f.id !== 'number' ||
 										!hitBreakpointIds.includes(f.id) ||
-										!(br.LogMessage() === triggeredMessage)
+										!br.isOneTime()
 									) {
 										return;
 									}
@@ -214,23 +211,27 @@ export function activate(context: vscode.ExtensionContext) {
 
 		const cursor = editor.selection.active;
 
-		vscode.debug.addBreakpoints([
-			new vscode.SourceBreakpoint(
-				new vscode.Location(doc.uri, cursor),
-				true,
-				'true',
-				undefined,
-				triggeredMessage
+		const sameLine = getBreakpointFromFile().filter(
+			(b) => b.Location().range.start.line === cursor.line && b.isOneTime()
+		);
 
-				// undefined,
-				// `debugpoints.triggered`
-			),
-		]);
+		if (sameLine.length === 0) {
+			vscode.debug.addBreakpoints([
+				new vscode.SourceBreakpoint(
+					new vscode.Location(doc.uri, cursor),
+					true,
+					'true',
+					undefined,
+					oneTimeMessage
+				),
+			]);
+			return;
+		}
+		vscode.debug.removeBreakpoints(sameLine.map((b) => b.breakpoint));
 	});
 
-	addCommand(makeName('listBreakPoints'), () => {
-		logPoints();
-	});
+	addCommand(makeName('listBreakPoints'), () => logPoints);
+
 	addCommand(makeName('addOnAssert'), () => {
 		const editor = vscode.window.activeTextEditor;
 		if (!editor) {
@@ -358,6 +359,28 @@ export function activate(context: vscode.ExtensionContext) {
 	addCommand(makeName('enable.all.file'), async () => {
 		new BreakPointAction().SetAction(enableBreakPoint).setGetter(getBreakpointFromFile).Use();
 	});
+
+	addCommand(makeName('remove.oneTime.file'), async () => {
+		return new BreakPointAction()
+			.setGetter(getBreakpointFromFile)
+			.setFilter(filterOneTime)
+			.SetAction((b) => vscode.debug.removeBreakpoints([b.breakpoint]))
+			.Use();
+	});
+	addCommand(makeName('disable.oneTime.file'), async () => {
+		new BreakPointAction()
+			.setFilter(filterOneTime)
+			.SetAction(disableBreakpoint)
+			.setGetter(getBreakpointFromFile)
+			.Use();
+	});
+	addCommand(makeName('enable.oneTime.file'), async () => {
+		new BreakPointAction()
+			.setFilter(filterOneTime)
+			.SetAction(enableBreakPoint)
+			.setGetter(getBreakpointFromFile)
+			.Use();
+	});
 	//workspace actions
 	addCommand(makeName('remove.logpoints.workspace'), async () => {
 		const removeAc = new BreakPointAction();
@@ -470,6 +493,31 @@ export function activate(context: vscode.ExtensionContext) {
 			.SetAction(enableBreakPoint)
 			.setGetter(getBreakpointFromWorkspace)
 			.setFilter(filterHitCondition)
+			.Use();
+	});
+
+	addCommand(makeName('remove.oneTime.workspace'), async () => {
+		const removeAc = new BreakPointAction();
+		removeAc
+			.setFilter(filterOneTime)
+			.setGetter(getBreakpointFromWorkspace)
+			.SetAction((b) => {
+				vscode.debug.removeBreakpoints([b.breakpoint]);
+			});
+		removeAc.Use();
+	});
+	addCommand(makeName('disable.oneTime.workspace'), async () => {
+		new BreakPointAction()
+			.setFilter(filterOneTime)
+			.SetAction(disableBreakpoint)
+			.setGetter(getBreakpointFromWorkspace)
+			.Use();
+	});
+	addCommand(makeName('enable.oneTime.workspace'), async () => {
+		new BreakPointAction()
+			.SetAction(enableBreakPoint)
+			.setGetter(getBreakpointFromWorkspace)
+			.setFilter(filterOneTime)
 			.Use();
 	});
 	context.subscriptions.push();

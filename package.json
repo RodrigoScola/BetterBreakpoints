@@ -97,6 +97,18 @@
 				"title": "Enable all breakpoints from file"
 			},
 			{
+				"command": "debugpoints.remove.oneTime.file",
+				"title": "Remove oneTime from file"
+			},
+			{
+				"command": "debugpoints.disable.oneTime.file",
+				"title": "Disable oneTime from file"
+			},
+			{
+				"command": "debugpoints.enable.oneTime.file",
+				"title": "Enable oneTime from file"
+			},
+			{
 				"command": "debugpoints.remove.logpoints.workspace",
 				"title": "Remove logpoints from workspace"
 			},
@@ -155,6 +167,18 @@
 			{
 				"command": "debugpoints.enable.all.workspace",
 				"title": "Enable all breakpoints from workspace"
+			},
+			{
+				"command": "debugpoints.remove.oneTime.workspace",
+				"title": "Remove oneTime breakpoints from workspace"
+			},
+			{
+				"command": "debugpoints.disable.oneTime.workspace",
+				"title": "Disable oneTime breakpoints from workspace"
+			},
+			{
+				"command": "debugpoints.enable.oneTime.workspace",
+				"title": "Enable oneTime breakpoints from workspace"
 			},
 			{
 				"command": "debugpoints.addTriggered",
