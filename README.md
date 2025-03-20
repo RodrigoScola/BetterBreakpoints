@@ -1,19 +1,11 @@
-# debugpoints README
+# Better Breakpoints
 
-this is an extension for better debugging breakpoints.
+The Better breakpoints will help you have more fine grained control to the breakpoints that you create
 
-## Roadmap
+you will be able to
 
--    list all breakpoints
--    remove all breakpoints from file
--    remove all breakpoints (types ) from file
+-    enable, disable, remove breakpoints per file or workspace
 
--    disable all breakpoints from file
--    disable all breakpoints (types ) from file
+-    list and go to all the breakponts that you have
 
--    enable all breakpoints from file
--    enable all breakpoints (types ) from file
-
--    One time triggered breakpoints
-
-add conditional on regex
+-    add one time breakpoints that are removed as soon as they are hit
