@@ -12,6 +12,7 @@ import {
 	filterHitCondition,
 	getBreakpointFromWorkspace,
 } from './actions';
+import { isArray, isArray, isArray } from 'util';
 
 function makeName(str: string): string {
 	return `debugpoints.${str}`;
@@ -29,14 +30,12 @@ async function logPoints() {
 	const workspace = vscode.workspace;
 
 	if (!workspace) {
-		console.warn('there is no active workspace');
 		return;
 	}
 
 	let basePath: string | undefined = getCurrentPath();
 
 	if (!basePath) {
-		console.warn('there is no open file');
 		return;
 	}
 
@@ -92,7 +91,6 @@ async function goTobreakpoint(points: MyBreakpoint[]) {
 		assert(doc, 'document is not in the documents');
 
 		if (doc.status === 'rejected') {
-			console.error('operation failed: ', doc.reason);
 			return;
 		}
 
@@ -154,57 +152,114 @@ function addConditionalBreakpointsOnFile(doc: vscode.TextDocument, regex: RegExp
 	}
 }
 
+const triggeredMessage = 'betterBreakpoints.triggeredBreakpoint';
+
 export function activate(context: vscode.ExtensionContext) {
 	function addCommand(name: string, fn: () => void): void {
 		context.subscriptions.push(vscode.commands.registerCommand(name, fn));
 	}
 
-	addCommand(makeName('listBreakPoints'), logPoints);
-	addCommand(makeName('addOnAssert'), () => {
+	let hitBreakpointIds: number[] = [];
+
+	vscode.debug.registerDebugAdapterTrackerFactory('*', {
+		createDebugAdapterTracker(session) {
+			return {
+				onDidSendMessage: async (message) => {
+					if (
+						message.event === 'breakpoint' &&
+						message.body.reason === 'changed' &&
+						hitBreakpointIds.length > 0
+					) {
+						getBreakpointFromWorkspace().map((br) => {
+							return vscode.debug.activeDebugSession
+								?.getDebugProtocolBreakpoint(br.breakpoint)
+								.then((f) => {
+									if (
+										!f ||
+										typeof f !== 'object' ||
+										!('id' in f) ||
+										typeof f.id !== 'number' ||
+										!hitBreakpointIds.includes(f.id) ||
+										!(br.LogMessage() === triggeredMessage)
+									) {
+										return;
+									}
+
+									vscode.debug.removeBreakpoints([br.breakpoint]);
+								});
+						});
+					}
+
+					if (message.event === 'stopped' && message.body.reason === 'breakpoint') {
+						const hitIds: number[] = message.body.hitBreakpointIds;
+
+						assert(
+							Array.isArray(hitIds) && hitIds.every((n) => !Number.isNaN(n)),
+							'invalid array'
+						);
+						hitBreakpointIds = hitIds;
+					}
+				},
+			};
+		},
+	});
+
+	addCommand(makeName('addTriggered'), () => {
 		const editor = vscode.window.activeTextEditor;
 
 		if (!editor) {
-			console.warn('no editor');
 			return;
 		}
+		const doc = editor.document;
 
-		const regex = /\bassert(?:\.\w+)?\s*\(\s*([^,]+)\s*,\s*(['"][^'"]+['"])?\s*\)/g;
+		const cursor = editor.selection.active;
 
-		addConditionalBreakpointsOnFile(editor.document, regex);
+		vscode.debug.addBreakpoints([
+			new vscode.SourceBreakpoint(
+				new vscode.Location(doc.uri, cursor),
+				true,
+				'true',
+				undefined,
+				triggeredMessage
+
+				// undefined,
+				// `debugpoints.triggered`
+			),
+		]);
 	});
 
+	addCommand(makeName('listBreakPoints'), () => {
+		logPoints();
+	});
+	addCommand(makeName('addOnAssert'), () => {
+		const editor = vscode.window.activeTextEditor;
+		if (!editor) {
+			return;
+		}
+		const regex = /\bassert(?:\.\w+)?\s*\(\s*([^,]+)\s*,\s*(['"][^'"]+['"])?\s*\)/g;
+		addConditionalBreakpointsOnFile(editor.document, regex);
+	});
 	addCommand(makeName('projectAddOnAssert'), async () => {
 		const editor = vscode.window.activeTextEditor;
-
 		const regex = /\bassert(?:\.\w+)?\s*\(\s*([^,]+)\s*,\s*(['"][^'"]+['"])?\s*\)/g;
-
-		console.log(vscode.workspace.workspaceFolders, 'folders');
-
 		(await vscode.workspace.findFiles(`**/*.cs`, `(\.gitignore)`)).forEach((uri) => {
 			vscode.workspace.openTextDocument(uri).then((document) => {
 				// Now you have the TextDocument, and you can access its content, language, etc.
-				console.log('Document opened:', document.uri.fsPath);
-				console.log('Document content:', document.getText());
-
 				addConditionalBreakpointsOnFile(document, regex);
 			});
 		});
 	});
-
 	//logpointActions
 	addCommand(makeName('remove.logpoints.file'), async () => {
 		const removeAc = new BreakPointAction();
-
 		removeAc
 			.setFilter(filterLog)
 			.setGetter(getBreakpointFromFile)
 			.SetAction((b) => {
 				vscode.debug.removeBreakpoints([b.breakpoint]);
 			});
-
 		removeAc.Use();
 	});
-
 	addCommand(makeName('disable.logpoints.file'), async () => {
 		new BreakPointAction()
 			.SetAction(disableBreakpoint)
@@ -212,7 +267,6 @@ export function activate(context: vscode.ExtensionContext) {
 			.setFilter(filterLog)
 			.Use();
 	});
-
 	addCommand(makeName('enable.logpoints.file'), async () => {
 		new BreakPointAction()
 			.SetAction(enableBreakPoint)
@@ -220,20 +274,16 @@ export function activate(context: vscode.ExtensionContext) {
 			.setFilter(filterLog)
 			.Use();
 	});
-
 	addCommand(makeName('remove.breakpoints.file'), async () => {
 		const removeAc = new BreakPointAction();
-
 		removeAc
 			.setFilter(filterBreakpoint)
 			.setGetter(getBreakpointFromFile)
 			.SetAction((b) => {
 				vscode.debug.removeBreakpoints([b.breakpoint]);
 			});
-
 		removeAc.Use();
 	});
-
 	addCommand(makeName('disable.breakpoints.file'), async () => {
 		new BreakPointAction()
 			.SetAction(disableBreakpoint)
@@ -241,7 +291,6 @@ export function activate(context: vscode.ExtensionContext) {
 			.setFilter(filterBreakpoint)
 			.Use();
 	});
-
 	addCommand(makeName('enable.breakpoints.file'), async () => {
 		new BreakPointAction()
 			.SetAction(enableBreakPoint)
@@ -249,20 +298,16 @@ export function activate(context: vscode.ExtensionContext) {
 			.setFilter(filterBreakpoint)
 			.Use();
 	});
-
 	addCommand(makeName('remove.conditionals.file'), async () => {
 		const removeAc = new BreakPointAction();
-
 		removeAc
 			.setFilter(filterConditional)
 			.setGetter(getBreakpointFromFile)
 			.SetAction((b) => {
 				vscode.debug.removeBreakpoints([b.breakpoint]);
 			});
-
 		removeAc.Use();
 	});
-
 	addCommand(makeName('disable.conditionals.file'), async () => {
 		new BreakPointAction()
 			.SetAction(disableBreakpoint)
@@ -270,7 +315,6 @@ export function activate(context: vscode.ExtensionContext) {
 			.setFilter(filterConditional)
 			.Use();
 	});
-
 	addCommand(makeName('enable.conditionals.file'), async () => {
 		new BreakPointAction()
 			.SetAction(enableBreakPoint)
@@ -278,20 +322,16 @@ export function activate(context: vscode.ExtensionContext) {
 			.setFilter(filterConditional)
 			.Use();
 	});
-
 	addCommand(makeName('remove.hitConditionals.file'), async () => {
 		const removeAc = new BreakPointAction();
-
 		removeAc
 			.setFilter(filterHitCondition)
 			.setGetter(getBreakpointFromFile)
 			.SetAction((b) => {
 				vscode.debug.removeBreakpoints([b.breakpoint]);
 			});
-
 		removeAc.Use();
 	});
-
 	addCommand(makeName('disable.hitConditionals.file'), async () => {
 		new BreakPointAction()
 			.SetAction(disableBreakpoint)
@@ -299,7 +339,6 @@ export function activate(context: vscode.ExtensionContext) {
 			.setFilter(filterHitCondition)
 			.Use();
 	});
-
 	addCommand(makeName('enable.hitConditionals.file'), async () => {
 		new BreakPointAction()
 			.SetAction(enableBreakPoint)
@@ -307,21 +346,29 @@ export function activate(context: vscode.ExtensionContext) {
 			.setFilter(filterHitCondition)
 			.Use();
 	});
-
+	addCommand(makeName('remove.all.file'), async () => {
+		return new BreakPointAction()
+			.setGetter(getBreakpointFromFile)
+			.SetAction((b) => vscode.debug.removeBreakpoints([b.breakpoint]))
+			.Use();
+	});
+	addCommand(makeName('disable.all.file'), async () => {
+		new BreakPointAction().SetAction(disableBreakpoint).setGetter(getBreakpointFromFile).Use();
+	});
+	addCommand(makeName('enable.all.file'), async () => {
+		new BreakPointAction().SetAction(enableBreakPoint).setGetter(getBreakpointFromFile).Use();
+	});
 	//workspace actions
 	addCommand(makeName('remove.logpoints.workspace'), async () => {
 		const removeAc = new BreakPointAction();
-
 		removeAc
 			.setFilter(filterLog)
 			.setGetter(getBreakpointFromWorkspace)
 			.SetAction((b) => {
 				vscode.debug.removeBreakpoints([b.breakpoint]);
 			});
-
 		removeAc.Use();
 	});
-
 	addCommand(makeName('disable.logpoints.workspace'), async () => {
 		new BreakPointAction()
 			.SetAction(disableBreakpoint)
@@ -329,7 +376,6 @@ export function activate(context: vscode.ExtensionContext) {
 			.setFilter(filterLog)
 			.Use();
 	});
-
 	addCommand(makeName('enable.logpoints.workspace'), async () => {
 		new BreakPointAction()
 			.SetAction(enableBreakPoint)
@@ -337,20 +383,16 @@ export function activate(context: vscode.ExtensionContext) {
 			.setFilter(filterLog)
 			.Use();
 	});
-
 	addCommand(makeName('remove.breakpoints.workspace'), async () => {
 		const removeAc = new BreakPointAction();
-
 		removeAc
 			.setFilter(filterBreakpoint)
 			.setGetter(getBreakpointFromWorkspace)
 			.SetAction((b) => {
 				vscode.debug.removeBreakpoints([b.breakpoint]);
 			});
-
 		removeAc.Use();
 	});
-
 	addCommand(makeName('disable.breakpoints.workspace'), async () => {
 		new BreakPointAction()
 			.SetAction(disableBreakpoint)
@@ -358,7 +400,6 @@ export function activate(context: vscode.ExtensionContext) {
 			.setFilter(filterBreakpoint)
 			.Use();
 	});
-
 	addCommand(makeName('enable.breakpoints.workspace'), async () => {
 		new BreakPointAction()
 			.SetAction(enableBreakPoint)
@@ -366,20 +407,16 @@ export function activate(context: vscode.ExtensionContext) {
 			.setFilter(filterBreakpoint)
 			.Use();
 	});
-
 	addCommand(makeName('remove.conditionals.workspace'), async () => {
 		const removeAc = new BreakPointAction();
-
 		removeAc
 			.setFilter(filterConditional)
 			.setGetter(getBreakpointFromWorkspace)
 			.SetAction((b) => {
 				vscode.debug.removeBreakpoints([b.breakpoint]);
 			});
-
 		removeAc.Use();
 	});
-
 	addCommand(makeName('disable.conditionals.workspace'), async () => {
 		new BreakPointAction()
 			.SetAction(disableBreakpoint)
@@ -387,7 +424,6 @@ export function activate(context: vscode.ExtensionContext) {
 			.setFilter(filterConditional)
 			.Use();
 	});
-
 	addCommand(makeName('enable.conditionals.workspace'), async () => {
 		new BreakPointAction()
 			.SetAction(enableBreakPoint)
@@ -395,20 +431,16 @@ export function activate(context: vscode.ExtensionContext) {
 			.setFilter(filterConditional)
 			.Use();
 	});
-
 	addCommand(makeName('remove.hitConditionals.workspace'), async () => {
 		const removeAc = new BreakPointAction();
-
 		removeAc
 			.setFilter(filterHitCondition)
 			.setGetter(getBreakpointFromWorkspace)
 			.SetAction((b) => {
 				vscode.debug.removeBreakpoints([b.breakpoint]);
 			});
-
 		removeAc.Use();
 	});
-
 	addCommand(makeName('disable.hitConditionals.workspace'), async () => {
 		new BreakPointAction()
 			.SetAction(disableBreakpoint)
@@ -416,7 +448,6 @@ export function activate(context: vscode.ExtensionContext) {
 			.setFilter(filterHitCondition)
 			.Use();
 	});
-
 	addCommand(makeName('enable.hitConditionals.workspace'), async () => {
 		new BreakPointAction()
 			.SetAction(enableBreakPoint)
@@ -424,6 +455,24 @@ export function activate(context: vscode.ExtensionContext) {
 			.setFilter(filterHitCondition)
 			.Use();
 	});
+	addCommand(makeName('remove.all.workspace'), async () => {
+		const removeAc = new BreakPointAction();
+		removeAc.setGetter(getBreakpointFromWorkspace).SetAction((b) => {
+			vscode.debug.removeBreakpoints([b.breakpoint]);
+		});
+		removeAc.Use();
+	});
+	addCommand(makeName('disable.all.workspace'), async () => {
+		new BreakPointAction().SetAction(disableBreakpoint).setGetter(getBreakpointFromWorkspace).Use();
+	});
+	addCommand(makeName('enable.all.workspace'), async () => {
+		new BreakPointAction()
+			.SetAction(enableBreakPoint)
+			.setGetter(getBreakpointFromWorkspace)
+			.setFilter(filterHitCondition)
+			.Use();
+	});
+	context.subscriptions.push();
 }
 
 export function deactivate() {}

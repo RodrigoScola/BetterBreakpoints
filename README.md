@@ -14,4 +14,6 @@ this is an extension for better debugging breakpoints.
 -    enable all breakpoints from file
 -    enable all breakpoints (types ) from file
 
+-    One time triggered breakpoints
+
 add conditional on regex

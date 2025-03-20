@@ -87,4 +87,8 @@ export class MyBreakpoint {
 	inWorkspace(uri: string): boolean {
 		return this.Location().uri.path.startsWith(uri) || this.Location().uri.path === uri;
 	}
+
+	SamePath(uri: string): boolean {
+		return this.Location().uri.path === uri;
+	}
 }

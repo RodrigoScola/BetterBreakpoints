@@ -30,13 +30,15 @@
 		"url": "https://github.com/RodrigoScola/BetterBreakpoints"
 	},
 	"homepage": "https://github.com/RodrigoScola/BetterBreakpoints",
-	"activationEvents": [],
+	"activationEvents": [
+		"onDebug"
+	],
 	"main": "./dist/extension.js",
 	"contributes": {
 		"commands": [
 			{
 				"command": "debugpoints.listBreakPoints",
-				"title": "List All Breakpoints"
+				"title": "List All Breakpoints from project"
 			},
 			{
 				"command": "debugpoints.addOnAssert",
@@ -81,6 +83,18 @@
 			{
 				"command": "debugpoints.enable.conditionals.file",
 				"title": "Enable breakpoints from file"
+			},
+			{
+				"command": "debugpoints.remove.all.file",
+				"title": "Remove all breakpoints from file"
+			},
+			{
+				"command": "debugpoints.disable.all.file",
+				"title": "Disable all breakpoints from file"
+			},
+			{
+				"command": "debugpoints.enable.all.file",
+				"title": "Enable all breakpoints from file"
 			},
 			{
 				"command": "debugpoints.remove.logpoints.workspace",
@@ -129,6 +143,22 @@
 			{
 				"command": "debugpoints.enable.hitConditionals.workspace",
 				"title": "Enable hit Conditions from workspace"
+			},
+			{
+				"command": "debugpoints.remove.all.workspace",
+				"title": "Remove all breakpoints from workspace"
+			},
+			{
+				"command": "debugpoints.disable.all.workspace",
+				"title": "Disable all breakpoints from workspace"
+			},
+			{
+				"command": "debugpoints.enable.all.workspace",
+				"title": "Enable all breakpoints from workspace"
+			},
+			{
+				"command": "debugpoints.addTriggered",
+				"title": "add triggered"
 			}
 		]
 	},

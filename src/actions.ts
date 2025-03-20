@@ -8,7 +8,7 @@ export class BreakPointAction {
 
 	constructor() {
 		this.action = () => {};
-		this.filter = () => false;
+		this.filter = () => true;
 		this.getFn = () => [];
 	}
 
@@ -28,9 +28,9 @@ export class BreakPointAction {
 	}
 
 	Use(): void {
-		const breakpoints = this.getFn().filter(this.filter);
+		const breakpoints = this.getFn();
 
-		for (var br of breakpoints) {
+		for (var br of breakpoints.filter(this.filter)) {
 			this.action(br);
 		}
 	}
@@ -50,7 +50,7 @@ export function filterBreakpoint(b: MyBreakpoint): boolean {
 export function filterLog(b: MyBreakpoint): boolean {
 	return b.isLog();
 }
-export function getBreakpointFromWorkspace() {
+export function getBreakpointFromWorkspace(): MyBreakpoint[] {
 	let filepath = vscode.workspace.workspaceFolders;
 
 	return vscode.debug.breakpoints
