@@ -163,6 +163,7 @@ export function activate(context: vscode.ExtensionContext) {
 	let tempPaths: Set<string> = new Set<string>();
 
 	vscode.workspace.onDidOpenTextDocument(async (document) => {
+		//sometimes vscode opens the file on the .git file?
 		let path = vscode.Uri.file(document.uri.path.replace('.git', ''));
 
 		const ignorePatterns = getConfig().IgnoreBreakpointList();
