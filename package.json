@@ -4,7 +4,7 @@
 	"icon": "docs/icon.png",
 	"displayName": "Better Breakpoints",
 	"description": "A more complete visual studio code breakpoint implementation",
-	"version": "0.0.5",
+	"version": "0.0.6",
 	"engines": {
 		"vscode": "^1.98.0"
 	},
