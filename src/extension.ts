@@ -13,6 +13,9 @@ import {
 	getBreakpointFromWorkspace,
 	filterOneTime,
 } from './actions';
+import path from 'path';
+import { getConfig } from './config';
+import console from 'console';
 
 function makeName(str: string): string {
 	return `debugpoints.${str}`;
@@ -157,10 +160,58 @@ export function activate(context: vscode.ExtensionContext) {
 		context.subscriptions.push(vscode.commands.registerCommand(name, fn));
 	}
 
+	let tempPaths: Set<string> = new Set<string>();
+
+	vscode.workspace.onDidOpenTextDocument(async (document) => {
+		let path = vscode.Uri.file(document.uri.path.replace('.git', ''));
+
+		const ignorePatterns = getConfig().IgnoreBreakpointList();
+
+		const ignoreRegex = ignorePatterns.map((pattern) => new RegExp('^' + pattern.replace('*', '.*') + '$'));
+
+		if (tempPaths.has(path.path)) {
+			tempPaths.delete(path.path);
+
+			// Log matches for debugging purposes
+			ignoreRegex.forEach((p) => {
+				const matchResult = path.path.match(p);
+				console.log(`Regex: ${p}, Match: ${matchResult}`);
+			});
+
+			// If any regex matches path.path, execute the commands
+			if (ignoreRegex.length > 0 && ignoreRegex.some((p) => path.path.match(p))) {
+				vscode.commands.executeCommand('workbench.action.closeActiveEditor').then(() => {
+					vscode.commands.executeCommand('workbench.action.debug.continue');
+				});
+			}
+		}
+	});
+
 	vscode.debug.registerDebugAdapterTrackerFactory('*', {
 		createDebugAdapterTracker(session) {
 			return {
 				onDidSendMessage: async (message) => {
+					if (
+						message?.command?.toLowerCase() === 'stacktrace' &&
+						message.body.stackFrames.length === 1
+					) {
+						const f: {
+							canRestart: boolean;
+							column: number;
+							id: number;
+							line: number;
+							name: string;
+							presentationHint: string;
+							source: {
+								name: string;
+								path: string;
+								sourceReference: number;
+							};
+						} =
+							//@ts-expect-error
+							message.body.stackFrames.find((s) => s);
+						tempPaths.add(vscode.Uri.file(f.source.path).path);
+					}
 					if (message.event === 'stopped' && message.body.reason === 'breakpoint') {
 						const hitIds: number[] = message.body.hitBreakpointIds;
 
@@ -512,6 +563,7 @@ export function activate(context: vscode.ExtensionContext) {
 			.setFilter(filterOneTime)
 			.Use();
 	});
+
 	context.subscriptions.push();
 }
 

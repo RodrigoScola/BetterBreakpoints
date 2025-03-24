@@ -35,6 +35,39 @@
 	],
 	"main": "./dist/extension.js",
 	"contributes": {
+		"configuration": {
+			"title": "Better Breakpoints",
+			"properties": {
+				"betterbreakpoints.ignoreFilePatterns": {
+					"type": "array",
+					"description": "Will skip the breakpoints going to the file",
+					"default": [
+						[
+							".git"
+						]
+					]
+				}
+			}
+		},
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"title": "icon",
+					"icon": "file-code",
+					"id": "betterbreakpointsmain"
+				}
+			]
+		},
+		"views": {
+			"betterbreakpointsmain": [
+				{
+					"id": "betterbreakpointsmain",
+					"name": "Custom Sidebar",
+					"type": "tree",
+					"icon": "file-code"
+				}
+			]
+		},
 		"commands": [
 			{
 				"command": "debugpoints.listBreakPoints",
