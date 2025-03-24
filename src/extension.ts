@@ -159,14 +159,15 @@ export function activate(context: vscode.ExtensionContext) {
 
 	vscode.debug.registerDebugAdapterTrackerFactory('*', {
 		createDebugAdapterTracker(session) {
-			let hitBreakpointIds: number[] = [];
 			return {
 				onDidSendMessage: async (message) => {
-					if (
-						message.event === 'breakpoint' &&
-						message.body.reason === 'changed' &&
-						hitBreakpointIds.length > 0
-					) {
+					if (message.event === 'stopped' && message.body.reason === 'breakpoint') {
+						const hitIds: number[] = message.body.hitBreakpointIds;
+
+						assert(
+							Array.isArray(hitIds) && hitIds.every((n) => !Number.isNaN(n)),
+							'invalid array'
+						);
 						getBreakpointFromWorkspace().map((br) => {
 							return vscode.debug.activeDebugSession
 								?.getDebugProtocolBreakpoint(br.breakpoint)
@@ -176,25 +177,17 @@ export function activate(context: vscode.ExtensionContext) {
 										typeof f !== 'object' ||
 										!('id' in f) ||
 										typeof f.id !== 'number' ||
-										!hitBreakpointIds.includes(f.id) ||
+										!hitIds.includes(f.id) ||
 										!br.isOneTime()
 									) {
 										return;
 									}
 
 									vscode.debug.removeBreakpoints([br.breakpoint]);
+
+									hitIds.filter((id) => id === f.id);
 								});
 						});
-					}
-
-					if (message.event === 'stopped' && message.body.reason === 'breakpoint') {
-						const hitIds: number[] = message.body.hitBreakpointIds;
-
-						assert(
-							Array.isArray(hitIds) && hitIds.every((n) => !Number.isNaN(n)),
-							'invalid array'
-						);
-						hitBreakpointIds = hitIds;
 					}
 				},
 			};
@@ -220,9 +213,8 @@ export function activate(context: vscode.ExtensionContext) {
 				new vscode.SourceBreakpoint(
 					new vscode.Location(doc.uri, cursor),
 					true,
-					'true',
-					undefined,
-					oneTimeMessage
+					oneTimeMessage,
+					undefined
 				),
 			]);
 			return;

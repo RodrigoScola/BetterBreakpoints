@@ -9,7 +9,7 @@
 			"name": "Run Extension",
 			"type": "extensionHost",
 			"request": "launch",
-			"args": ["--extensionDevelopmentPath=${workspaceFolder}", "${workspaceFolder}/src/extension.ts"],
+			"args": ["--extensionDevelopmentPath=${workspaceFolder}", "D:/code/vscode-text-objects"],
 			"outFiles": ["${workspaceFolder}/dist/**/*.js"],
 			"preLaunchTask": "${defaultBuildTask}"
 		}
