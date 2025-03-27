@@ -14,6 +14,7 @@ import {
 } from './actions';
 import { getConfig } from './config';
 import * as assert from 'assert';
+import { NodeDependenciesProvider } from './nodeDep';
 
 function makeName(str: string): string {
 	return `debugpoints.${str}`;
@@ -27,6 +28,21 @@ export function getCurrentPath() {
 }
 
 export function activate(context: vscode.ExtensionContext) {
+	const rootPath =
+		vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0
+			? vscode.workspace.workspaceFolders[0].uri.fsPath
+			: undefined;
+
+	if (!rootPath) {
+		return;
+	}
+
+	vscode.window.registerTreeDataProvider('nodeDependencies', new NodeDependenciesProvider(rootPath));
+
+	vscode.window.createTreeView('nodeDependencies', {
+		treeDataProvider: new NodeDependenciesProvider(rootPath),
+	});
+
 	function addCommand(name: string, fn: () => void): void {
 		context.subscriptions.push(vscode.commands.registerCommand(name, fn));
 	}

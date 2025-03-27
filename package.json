@@ -49,22 +49,11 @@
 				}
 			}
 		},
-		"viewsContainers": {
-			"activitybar": [
-				{
-					"title": "icon",
-					"icon": "file-code",
-					"id": "betterbreakpointsmain"
-				}
-			]
-		},
 		"views": {
-			"betterbreakpointsmain": [
+			"explorer": [
 				{
-					"id": "betterbreakpointsmain",
-					"name": "Custom Sidebar",
-					"type": "webview",
-					"icon": "file-code"
+					"id": "nodeDependencies",
+					"name": "Node Dependencies"
 				}
 			]
 		},

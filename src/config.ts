@@ -9,11 +9,15 @@ export class Config {
 	}
 
 	IgnoreBreakpointList(): string[] {
-		assert(this.config, ' config has not been setup');
+		try {
+			assert(this.config, ' config has not been setup');
+		} catch (err) {}
 
 		const value = this.config.get('ignoreFilePatterns');
 
-		assert(typeof value !== 'undefined' && value !== null, 'value was not found');
+		try {
+			assert(typeof value !== 'undefined' && value !== null, 'value was not found');
+		} catch (err) {}
 
 		return value as string[];
 	}
