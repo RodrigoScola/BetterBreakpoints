@@ -1,6 +1,5 @@
-import assert from 'assert';
 import * as vscode from 'vscode';
-import { MyBreakpoint, oneTimeMessage } from './breakpoint';
+import { addConditionalBreakpointsOnFile, logPoints, oneTimeMessage } from './breakpoint';
 import {
 	BreakPointAction,
 	filterLog,
@@ -13,146 +12,18 @@ import {
 	getBreakpointFromWorkspace,
 	filterOneTime,
 } from './actions';
-import path from 'path';
 import { getConfig } from './config';
-import console from 'console';
+import * as assert from 'assert';
 
 function makeName(str: string): string {
 	return `debugpoints.${str}`;
 }
-
-function getCurrentPath() {
+export function getCurrentPath() {
 	return (
 		vscode.workspace.workspaceFolders?.at(0)?.uri.path ??
 		vscode.workspace.workspaceFile?.path ??
 		vscode.window.activeTextEditor?.document.uri.path
 	);
-}
-
-async function logPoints() {
-	const workspace = vscode.workspace;
-
-	if (!workspace) {
-		return;
-	}
-
-	let basePath: string | undefined = getCurrentPath();
-
-	if (!basePath) {
-		return;
-	}
-
-	const uniqueBreakpoints = Array.from(
-		new Set(
-			vscode.debug.breakpoints
-				.map((b) => new MyBreakpoint(b))
-				.filter((breakpoint) => breakpoint.inWorkspace(basePath))
-		)
-	);
-
-	goTobreakpoint(uniqueBreakpoints);
-}
-
-async function goTobreakpoint(points: MyBreakpoint[]) {
-	const editor = vscode.window.activeTextEditor;
-
-	if (editor) {
-		const editorPath = editor.document.uri.path;
-		points = points.sort((a, b) => (a.Location().uri.path === editorPath ? -1 : 1));
-	}
-
-	let basePath = '';
-	if (vscode.workspace.workspaceFolders) {
-		basePath = vscode.workspace.workspaceFolders.find((i) => i)?.uri.path || '';
-	}
-
-	let quickPickItems: vscode.QuickPickItem[] = points.map((f) => ({
-		label: f.toString(),
-		description: f.Location().uri.path.replace(basePath, ''),
-	}));
-	const promises = await Promise.allSettled(points.map(async (f) => f.Document()));
-
-	const pick = vscode.window.createQuickPick();
-	pick.ignoreFocusOut = true;
-
-	pick.items = quickPickItems;
-	pick.activeItems = [pick.items[0]];
-
-	pick.onDidChangeActive(async (selection) => {
-		const selected = selection[0];
-
-		pick.activeItems = [selected];
-
-		const item = points.find((x) => x.toString() === selected.label);
-		assert(item, `there is no item with the selected string ${selected.label}`);
-
-		var uri = vscode.Uri.file(item.Location().uri.path);
-
-		const doc = promises.find(
-			(promise) => promise.status === 'fulfilled' && promise.value.uri.path === uri.path
-		);
-		assert(doc, 'document is not in the documents');
-
-		if (doc.status === 'rejected') {
-			return;
-		}
-
-		await vscode.window.showTextDocument(doc.value, {
-			preserveFocus: true,
-		});
-
-		if (editor) {
-			const range = item.Location().range;
-			editor.selection = new vscode.Selection(range.start, range.start);
-			editor.revealRange(range);
-		}
-	});
-
-	pick.onDidAccept(pick.hide);
-	pick.show();
-}
-
-function addConditionalBreakpointsOnFile(doc: vscode.TextDocument, regex: RegExp) {
-	let match: RegExpExecArray | null;
-
-	const text = doc.getText().toLocaleLowerCase();
-
-	const sameFile = getBreakpointFromFile(doc.uri.path);
-
-	const positions: { message: string; pos: vscode.Position; condition: string }[] = [];
-	while ((match = regex.exec(text)) !== null) {
-		const nextInd = match.index;
-		const condition = match[1];
-		const message = match[2];
-		const pos = doc.positionAt(nextInd);
-
-		if (!pos) {
-			return;
-		}
-		positions.push({
-			condition,
-			pos,
-			message,
-		});
-	}
-
-	for (const pos of positions) {
-		const br = new vscode.SourceBreakpoint(
-			new vscode.Location(doc.uri, pos.pos),
-			true,
-			pos.condition,
-			undefined,
-			pos.message
-		);
-
-		const oldBreakpoint = sameFile.find((f) => f.Location().range.start.isEqual(pos.pos));
-
-		if (oldBreakpoint) {
-			vscode.debug.removeBreakpoints([oldBreakpoint.breakpoint]);
-		}
-
-		vscode.debug.addBreakpoints([br]);
-	}
 }
 
 export function activate(context: vscode.ExtensionContext) {
