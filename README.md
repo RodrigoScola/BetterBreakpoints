@@ -9,3 +9,5 @@ you will be able to
 -    list and go to all the breakponts that you have
 
 -    add one time breakpoints that are removed as soon as they are hit
+
+-    Debugger will skip ignored files ( working on it )

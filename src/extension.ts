@@ -512,7 +512,6 @@ export function activate(context: vscode.ExtensionContext) {
 			.setFilter(filterOneTime)
 			.Use();
 	});
-	context.subscriptions.push();
 }
 
 export function deactivate() {}
