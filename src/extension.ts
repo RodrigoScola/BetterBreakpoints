@@ -158,13 +158,6 @@ function addConditionalBreakpointsOnFile(doc: vscode.TextDocument, regex: RegExp
 export function activate(context: vscode.ExtensionContext) {
 	state.init();
 
-	console.log(
-		micromatch.contains(
-			'/c:/Users/hando/AppData/Local/Programs/Microsoft VS Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js',
-			'c:/Users/hando/'
-		)
-	);
-
 	state.onStop = async () => {
 		const editor = vscode.window.activeTextEditor;
 		if (!editor) {
