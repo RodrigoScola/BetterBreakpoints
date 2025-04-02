@@ -237,9 +237,9 @@ export function activate(context: vscode.ExtensionContext) {
 
 		await state.save();
 	});
-	addCommand(makeName('deleteIgnoreFile'), async (dep: Dependency) => {
+	addCommand(makeName('deleteIgnoreFile'), (dep: Dependency) => {
 		state.dependencies = state.dependencies.filter((d) => dep.label !== d.label);
-		await state.save();
+		return state.save();
 	});
 
 	vscode.debug.registerDebugAdapterTrackerFactory('*', {
