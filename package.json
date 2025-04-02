@@ -31,157 +31,212 @@
 	},
 	"homepage": "https://github.com/RodrigoScola/BetterBreakpoints",
 	"activationEvents": [
-		"onDebug"
+		"onDebug",
+		"onStartupFinished"
 	],
 	"main": "./dist/extension.js",
 	"contributes": {
+		"configuration": {
+			"title": "Better Breakpoints",
+			"properties": {
+				"betterbreakpoints.ignoredFiles": {
+					"type": "array",
+					"default": []
+				}
+			}
+		},
+		"views": {
+			"debug": [
+				{
+					"id": "ignoreFiles",
+					"name": "ignore files",
+					"icon": "icon"
+				}
+			]
+		},
+		"menus": {
+			"view/title": [
+				{
+					"command": "betterbreakpoints.addIgnoreFile",
+					"when": "view == ignoreFiles",
+					"group": "navigation"
+				}
+			],
+			"view/item/context": [
+				{
+					"command": "betterbreakpoints.editIgnoreFile",
+					"when": "view == ignoreFiles && viewItem == dependency ",
+					"group": "inline"
+				},
+				{
+					"command": "betterbreakpoints.deleteIgnoreFile",
+					"when": "view == ignoreFiles && viewItem == dependency ",
+					"group": "inline"
+				}
+			]
+		},
 		"commands": [
 			{
-				"command": "debugpoints.listBreakPoints",
+				"command": "betterbreakpoints.editIgnoreFile",
+				"icon": "$(pencil)",
+				"title": "edit"
+			},
+			{
+				"command": "betterbreakpoints.deleteIgnoreFile",
+				"icon": "$(trash)",
+				"title": "delete"
+			},
+			{
+				"command": "betterbreakpoints.addIgnoreFile",
+				"icon": "$(add)",
+				"title": "Add"
+			},
+			{
+				"command": "betterbreakpoints.listBreakPoints",
 				"title": "List All Breakpoints from project"
 			},
 			{
-				"command": "debugpoints.addOnAssert",
+				"command": "betterbreakpoints.addOnAssert",
 				"title": "Add commands on assert condition"
 			},
 			{
-				"command": "debugpoints.projectAddOnAssert",
+				"command": "betterbreakpoints.projectAddOnAssert",
 				"title": "Add on project assert"
 			},
 			{
-				"command": "debugpoints.remove.logpoints.file",
+				"command": "betterbreakpoints.remove.logpoints.file",
 				"title": "Remove logpoints from file"
 			},
 			{
-				"command": "debugpoints.disable.logpoints.file",
+				"command": "betterbreakpoints.disable.logpoints.file",
 				"title": "Disable logpoints from file"
 			},
 			{
-				"command": "debugpoints.enable.logpoints.file",
+				"command": "betterbreakpoints.enable.logpoints.file",
 				"title": "Enable logpoints from file"
 			},
 			{
-				"command": "debugpoints.remove.breakpoints.file",
+				"command": "betterbreakpoints.remove.breakpoints.file",
 				"title": "Remove breakpoints from file"
 			},
 			{
-				"command": "debugpoints.disable.breakpoints.file",
+				"command": "betterbreakpoints.disable.breakpoints.file",
 				"title": "Disable breakpoints from file"
 			},
 			{
-				"command": "debugpoints.enable.breakpoints.file",
+				"command": "betterbreakpoints.enable.breakpoints.file",
 				"title": "Enable breakpoints from file"
 			},
 			{
-				"command": "debugpoints.remove.conditionals.file",
+				"command": "betterbreakpoints.remove.conditionals.file",
 				"title": "Remove conditionals from file"
 			},
 			{
-				"command": "debugpoints.disable.conditionals.file",
+				"command": "betterbreakpoints.disable.conditionals.file",
 				"title": "Disable conditionals from file"
 			},
 			{
-				"command": "debugpoints.enable.conditionals.file",
+				"command": "betterbreakpoints.enable.conditionals.file",
 				"title": "Enable breakpoints from file"
 			},
 			{
-				"command": "debugpoints.remove.all.file",
+				"command": "betterbreakpoints.remove.all.file",
 				"title": "Remove all breakpoints from file"
 			},
 			{
-				"command": "debugpoints.disable.all.file",
+				"command": "betterbreakpoints.disable.all.file",
 				"title": "Disable all breakpoints from file"
 			},
 			{
-				"command": "debugpoints.enable.all.file",
+				"command": "betterbreakpoints.enable.all.file",
 				"title": "Enable all breakpoints from file"
 			},
 			{
-				"command": "debugpoints.remove.oneTime.file",
+				"command": "betterbreakpoints.remove.oneTime.file",
 				"title": "Remove oneTime from file"
 			},
 			{
-				"command": "debugpoints.disable.oneTime.file",
+				"command": "betterbreakpoints.disable.oneTime.file",
 				"title": "Disable oneTime from file"
 			},
 			{
-				"command": "debugpoints.enable.oneTime.file",
+				"command": "betterbreakpoints.enable.oneTime.file",
 				"title": "Enable oneTime from file"
 			},
 			{
-				"command": "debugpoints.remove.logpoints.workspace",
+				"command": "betterbreakpoints.remove.logpoints.workspace",
 				"title": "Remove logpoints from workspace"
 			},
 			{
-				"command": "debugpoints.disable.logpoints.workspace",
+				"command": "betterbreakpoints.disable.logpoints.workspace",
 				"title": "Disable logpoints from workspace"
 			},
 			{
-				"command": "debugpoints.enable.logpoints.workspace",
+				"command": "betterbreakpoints.enable.logpoints.workspace",
 				"title": "Enable logpoints from workspace"
 			},
 			{
-				"command": "debugpoints.remove.breakpoints.workspace",
+				"command": "betterbreakpoints.remove.breakpoints.workspace",
 				"title": "Remove breakpoints from workspace"
 			},
 			{
-				"command": "debugpoints.disable.breakpoints.workspace",
+				"command": "betterbreakpoints.disable.breakpoints.workspace",
 				"title": "Disable breakpoints from workspace"
 			},
 			{
-				"command": "debugpoints.enable.breakpoints.workspace",
+				"command": "betterbreakpoints.enable.breakpoints.workspace",
 				"title": "Enable breakpoints from workspace"
 			},
 			{
-				"command": "debugpoints.remove.conditionals.workspace",
+				"command": "betterbreakpoints.remove.conditionals.workspace",
 				"title": "Remove conditionals from workspace"
 			},
 			{
-				"command": "debugpoints.disable.conditionals.workspace",
+				"command": "betterbreakpoints.disable.conditionals.workspace",
 				"title": "Disable conditionals from workspace"
 			},
 			{
-				"command": "debugpoints.enable.conditionals.workspace",
+				"command": "betterbreakpoints.enable.conditionals.workspace",
 				"title": "Enable breakpoints from workspace"
 			},
 			{
-				"command": "debugpoints.remove.hitConditionals.workspace",
+				"command": "betterbreakpoints.remove.hitConditionals.workspace",
 				"title": "Remove hit Conditions from workspace"
 			},
 			{
-				"command": "debugpoints.disable.hitConditionals.workspace",
+				"command": "betterbreakpoints.disable.hitConditionals.workspace",
 				"title": "Disable hit Conditions from workspace"
 			},
 			{
-				"command": "debugpoints.enable.hitConditionals.workspace",
+				"command": "betterbreakpoints.enable.hitConditionals.workspace",
 				"title": "Enable hit Conditions from workspace"
 			},
 			{
-				"command": "debugpoints.remove.all.workspace",
+				"command": "betterbreakpoints.remove.all.workspace",
 				"title": "Remove all breakpoints from workspace"
 			},
 			{
-				"command": "debugpoints.disable.all.workspace",
+				"command": "betterbreakpoints.disable.all.workspace",
 				"title": "Disable all breakpoints from workspace"
 			},
 			{
-				"command": "debugpoints.enable.all.workspace",
+				"command": "betterbreakpoints.enable.all.workspace",
 				"title": "Enable all breakpoints from workspace"
 			},
 			{
-				"command": "debugpoints.remove.oneTime.workspace",
+				"command": "betterbreakpoints.remove.oneTime.workspace",
 				"title": "Remove oneTime breakpoints from workspace"
 			},
 			{
-				"command": "debugpoints.disable.oneTime.workspace",
+				"command": "betterbreakpoints.disable.oneTime.workspace",
 				"title": "Disable oneTime breakpoints from workspace"
 			},
 			{
-				"command": "debugpoints.enable.oneTime.workspace",
+				"command": "betterbreakpoints.enable.oneTime.workspace",
 				"title": "Enable oneTime breakpoints from workspace"
 			},
 			{
-				"command": "debugpoints.addTriggered",
+				"command": "betterbreakpoints.addTriggered",
 				"title": "add triggered"
 			}
 		]
@@ -201,16 +256,20 @@
 		"test": "vscode-test"
 	},
 	"devDependencies": {
-		"@types/vscode": "^1.98.0",
+		"@types/micromatch": "^4.0.9",
 		"@types/mocha": "^10.0.8",
 		"@types/node": "20.x",
+		"@types/vscode": "^1.98.0",
 		"@typescript-eslint/eslint-plugin": "^8.7.0",
 		"@typescript-eslint/parser": "^8.7.0",
-		"eslint": "^9.11.1",
-		"esbuild": "^0.24.0",
-		"npm-run-all": "^4.1.5",
-		"typescript": "^5.6.2",
 		"@vscode/test-cli": "^0.0.10",
-		"@vscode/test-electron": "^2.4.1"
+		"@vscode/test-electron": "^2.4.1",
+		"esbuild": "^0.24.0",
+		"eslint": "^9.11.1",
+		"npm-run-all": "^4.1.5",
+		"typescript": "^5.6.2"
+	},
+	"dependencies": {
+		"micromatch": "^4.0.8"
 	}
 }

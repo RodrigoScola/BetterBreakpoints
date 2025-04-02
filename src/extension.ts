@@ -13,9 +13,12 @@ import {
 	getBreakpointFromWorkspace,
 	filterOneTime,
 } from './actions';
+import { Dependency, IgnoreFilesProvider } from './ignoreFiles/provider';
+import { state } from './State';
+import micromatch from 'micromatch';
 
 function makeName(str: string): string {
-	return `debugpoints.${str}`;
+	return `betterbreakpoints.${str}`;
 }
 
 function getCurrentPath() {
@@ -153,41 +156,135 @@ function addConditionalBreakpointsOnFile(doc: vscode.TextDocument, regex: RegExp
 }
 
 export function activate(context: vscode.ExtensionContext) {
-	function addCommand(name: string, fn: () => void): void {
+	state.init();
+
+	console.log(
+		micromatch.contains(
+			'/c:/Users/hando/AppData/Local/Programs/Microsoft VS Code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js',
+			'c:/Users/hando/'
+		)
+	);
+
+	state.onStop = async () => {
+		const editor = vscode.window.activeTextEditor;
+		if (!editor) {
+			return;
+		}
+		const current = vscode.Uri.file(state.getCurrentPath() ?? '');
+		const filePath = vscode.Uri.file(editor.document.uri.path);
+
+		const ignoreRegex = state.configuration().IgnoreBreakpointList();
+
+		let path = filePath.path.replace(current.path, '');
+
+		if (path.startsWith('/')) {
+			path = path.slice(1);
+		}
+
+		if (state.match(path, ignoreRegex)) {
+			await vscode.commands.executeCommand('workbench.action.debug.continue').then((f) => {
+				state.debuggerStopped = false;
+			});
+		}
+	};
+
+	function addCommand(name: string, fn: (...args: any[]) => void): void {
 		context.subscriptions.push(vscode.commands.registerCommand(name, fn));
 	}
 
+	vscode.window.registerTreeDataProvider('ignoreFiles', state.provider);
+
+	vscode.window.createTreeView('ignoreFiles', {
+		treeDataProvider: state.provider,
+	});
+
+	addCommand(makeName('addIgnoreFile'), async () => {
+		const input = await vscode.window.showInputBox({
+			title: 'Ignore File',
+			//todo make a better message
+			placeHolder: 'What do you want to ignore? you can put regex',
+		});
+
+		if (!input || state.dependencies.some((d) => d.label === input)) {
+			return;
+		}
+
+		state.dependencies.push(Dependency.New(input));
+
+		await state.save();
+	});
+
+	addCommand(makeName('editIgnoreFile'), async (dep: Dependency) => {
+		const input = await vscode.window.showInputBox({
+			title: 'Ignore File',
+			value: dep.label,
+			//todo make a better message
+			placeHolder: 'What do you want to ignore? you can put regex',
+		});
+
+		if (!input) {
+			return;
+		}
+
+		let ind = -1;
+		for (let i = 0; i < state.dependencies.length; i++) {
+			if (state.dependencies[i].label === dep.label) {
+				ind = i;
+			}
+		}
+
+		state.dependencies[ind] = Dependency.New(input);
+
+		await state.save();
+	});
+	addCommand(makeName('deleteIgnoreFile'), async (dep: Dependency) => {
+		state.dependencies = state.dependencies.filter((d) => dep.label !== d.label);
+		await state.save();
+	});
+
 	vscode.debug.registerDebugAdapterTrackerFactory('*', {
 		createDebugAdapterTracker(session) {
+			state.session = session;
 			return {
 				onDidSendMessage: async (message) => {
-					if (message.event === 'stopped' && message.body.reason === 'breakpoint') {
-						const hitIds: number[] = message.body.hitBreakpointIds;
+					if (message.command === 'continue') {
+						state.debuggerStopped = false;
+					}
+					if (message.event === 'stopped') {
+						state.debuggerStopped = true;
 
-						assert(
-							Array.isArray(hitIds) && hitIds.every((n) => !Number.isNaN(n)),
-							'invalid array'
-						);
-						getBreakpointFromWorkspace().map((br) => {
-							return vscode.debug.activeDebugSession
-								?.getDebugProtocolBreakpoint(br.breakpoint)
-								.then((f) => {
-									if (
-										!f ||
-										typeof f !== 'object' ||
-										!('id' in f) ||
-										typeof f.id !== 'number' ||
-										!hitIds.includes(f.id) ||
-										!br.isOneTime()
-									) {
-										return;
-									}
+						state.onStop();
 
-									vscode.debug.removeBreakpoints([br.breakpoint]);
+						if (message.body.reason === 'breakpoint') {
+							state.debuggerStopped = true;
 
-									hitIds.filter((id) => id === f.id);
-								});
-						});
+							const hitIds: number[] = message.body.hitBreakpointIds;
+
+							assert(
+								Array.isArray(hitIds) && hitIds.every((n) => !Number.isNaN(n)),
+								'invalid array'
+							);
+							getBreakpointFromWorkspace().map((br) => {
+								return vscode.debug.activeDebugSession
+									?.getDebugProtocolBreakpoint(br.breakpoint)
+									.then((f) => {
+										if (
+											!f ||
+											typeof f !== 'object' ||
+											!('id' in f) ||
+											typeof f.id !== 'number' ||
+											!hitIds.includes(f.id) ||
+											!br.isOneTime()
+										) {
+											return;
+										}
+
+										vscode.debug.removeBreakpoints([br.breakpoint]);
+
+										hitIds.filter((id) => id === f.id);
+									});
+							});
+						}
 					}
 				},
 			};
