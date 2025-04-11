@@ -6,3 +6,4 @@ node_modules
 
 src/node.js
 src/node.js
+ignore_file.json

@@ -235,36 +235,6 @@ export function activate(context: vscode.ExtensionContext) {
 		return state.save();
 	});
 
-	vscode.debug.onDidChangeBreakpoints((e) => {
-		const session = state.session;
-
-		if (!session) {
-			return;
-		}
-
-		const breakpoints = e.added.concat(e.changed).concat(e.removed);
-
-		for (const br of breakpoints) {
-			console.log(br);
-			state.session?.getDebugProtocolBreakpoint(br).then((other) => {
-				console.log(other);
-			});
-		}
-	});
-
-	vscode.debug.onDidChangeActiveDebugSession((session) => {
-		state.session = session;
-
-		const breakpoints = getBreakpointFromWorkspace();
-
-		for (const br of breakpoints) {
-			console.log(br);
-			state.session?.getDebugProtocolBreakpoint(br.breakpoint).then((other) => {
-				console.log(other);
-			});
-		}
-	});
-
 	vscode.debug.registerDebugAdapterTrackerFactory('*', {
 		createDebugAdapterTracker(session) {
 			state.session = session;
