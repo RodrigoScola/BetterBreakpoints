@@ -91,7 +91,14 @@ export class MyBreakpoint {
 		});
 	}
 	inWorkspace(uri: string): boolean {
-		return this.Location().uri.path.startsWith(uri) || this.Location().uri.path === uri;
+		const path = this.Location().uri.path;
+
+		return (
+			path.startsWith(uri) ||
+			path === uri ||
+			path.toLowerCase().startsWith(uri.toLowerCase()) ||
+			path.toLowerCase() === uri.toLowerCase()
+		);
 	}
 
 	SamePath(uri: string): boolean {

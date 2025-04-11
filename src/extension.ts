@@ -1,4 +1,3 @@
-import assert from 'assert';
 import * as vscode from 'vscode';
 import { MyBreakpoint, oneTimeMessage } from './breakpoint';
 import {
@@ -16,6 +15,7 @@ import {
 import { Dependency, IgnoreFilesProvider } from './ignoreFiles/provider';
 import { state } from './State';
 import micromatch from 'micromatch';
+import assert from 'assert';
 
 function makeName(str: string): string {
 	return `betterbreakpoints.${str}`;
@@ -235,6 +235,36 @@ export function activate(context: vscode.ExtensionContext) {
 		return state.save();
 	});
 
+	vscode.debug.onDidChangeBreakpoints((e) => {
+		const session = state.session;
+
+		if (!session) {
+			return;
+		}
+
+		const breakpoints = e.added.concat(e.changed).concat(e.removed);
+
+		for (const br of breakpoints) {
+			console.log(br);
+			state.session?.getDebugProtocolBreakpoint(br).then((other) => {
+				console.log(other);
+			});
+		}
+	});
+
+	vscode.debug.onDidChangeActiveDebugSession((session) => {
+		state.session = session;
+
+		const breakpoints = getBreakpointFromWorkspace();
+
+		for (const br of breakpoints) {
+			console.log(br);
+			state.session?.getDebugProtocolBreakpoint(br.breakpoint).then((other) => {
+				console.log(other);
+			});
+		}
+	});
+
 	vscode.debug.registerDebugAdapterTrackerFactory('*', {
 		createDebugAdapterTracker(session) {
 			state.session = session;
@@ -257,26 +287,25 @@ export function activate(context: vscode.ExtensionContext) {
 								Array.isArray(hitIds) && hitIds.every((n) => !Number.isNaN(n)),
 								'invalid array'
 							);
-							getBreakpointFromWorkspace().map((br) => {
-								return vscode.debug.activeDebugSession
-									?.getDebugProtocolBreakpoint(br.breakpoint)
-									.then((f) => {
-										if (
-											!f ||
-											typeof f !== 'object' ||
-											!('id' in f) ||
-											typeof f.id !== 'number' ||
-											!hitIds.includes(f.id) ||
-											!br.isOneTime()
-										) {
-											return;
-										}
 
-										vscode.debug.removeBreakpoints([br.breakpoint]);
+							const breakpoints = getBreakpointFromWorkspace();
 
-										hitIds.filter((id) => id === f.id);
-									});
-							});
+							for (const br of breakpoints) {
+								session.getDebugProtocolBreakpoint(br.breakpoint).then((f) => {
+									if (
+										!f ||
+										typeof f !== 'object' ||
+										!('id' in f) ||
+										typeof f.id !== 'number' ||
+										!hitIds.includes(f.id) ||
+										!br.isOneTime()
+									) {
+										return;
+									}
+
+									vscode.debug.removeBreakpoints([br.breakpoint]);
+								});
+							}
 						}
 					}
 				},

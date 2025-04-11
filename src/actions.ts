@@ -58,10 +58,13 @@ export function filterOneTime(b: MyBreakpoint): boolean {
 export function getBreakpointFromWorkspace(): MyBreakpoint[] {
 	let filepath = vscode.workspace.workspaceFolders;
 
-	return vscode.debug.breakpoints
+	const all = vscode.debug.breakpoints;
+
+	return all
 		.map((b) => new MyBreakpoint(b))
 		.filter((b) => {
-			return filepath?.some((w) => b.inWorkspace(w.uri.path));
+			//sometimes this capitalizes the C: in windows........
+			return filepath?.some((w) => b.inWorkspace(vscode.Uri.file(w.uri.path).path));
 		});
 }
 
