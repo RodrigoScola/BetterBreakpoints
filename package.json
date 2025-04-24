@@ -259,7 +259,7 @@
 		"@types/micromatch": "^4.0.9",
 		"@types/mocha": "^10.0.8",
 		"@types/node": "20.x",
-		"@types/vscode": "^1.98.0",
+		"@types/vscode": "^1.8.0",
 		"@typescript-eslint/eslint-plugin": "^8.7.0",
 		"@typescript-eslint/parser": "^8.7.0",
 		"@vscode/test-cli": "^0.0.10",
