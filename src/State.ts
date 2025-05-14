@@ -69,4 +69,5 @@ export const state: State = {
 	},
 };
 
+//@ts-ignore
 global.state = () => state;
