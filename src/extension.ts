@@ -262,7 +262,7 @@ export function activate(context: vscode.ExtensionContext) {
 			state.session = session;
 			return {
 				onDidSendMessage: async (message) => {
-					console.log(message);
+					// console.log(message);
 					if (message.command === 'continue' || message.event === 'continued') {
 						state.debuggerStopped = false;
 					}
@@ -304,9 +304,9 @@ export function activate(context: vscode.ExtensionContext) {
 		},
 	});
 
-	addCommand(makeName('debug.continue'), () => {
+	addCommand(makeName('debug.continue'), async () => {
 		if (state.debuggerStopped === true) {
-			vscode.commands.executeCommand('workbench.action.debug.continue');
+			await vscode.commands.executeCommand('workbench.action.debug.continue');
 		}
 	});
 
