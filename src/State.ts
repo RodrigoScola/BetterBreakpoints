@@ -18,7 +18,7 @@ export type State = {
 	getCurrentPath: () => string | undefined;
 	init: () => void;
 	save: () => void;
-	onStop: () => void;
+	onStop: (doc: vscode.TextDocument | undefined) => void;
 	match: (needle: string, haystack: string[]) => boolean;
 };
 
@@ -68,3 +68,5 @@ export const state: State = {
 		);
 	},
 };
+
+global.state = () => state;

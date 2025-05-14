@@ -2,7 +2,7 @@
 
 The Better breakpoints will help you have more fine grained control to the breakpoints that you create
 
-you will be able to
+You will be able to
 
 -    enable, disable, remove breakpoints per file or workspace
 
@@ -10,4 +10,4 @@ you will be able to
 
 -    add one time breakpoints that are removed as soon as they are hit
 
--    Debugger will skip ignored files ( working on it )
+-    Debugger will skip ignored files

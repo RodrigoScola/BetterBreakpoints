@@ -238,6 +238,10 @@
 			{
 				"command": "betterbreakpoints.addTriggered",
 				"title": "add triggered"
+			},
+			{
+				"command": "betterbreakpoints.debug.continue",
+				"title": "Continue the debugging process"
 			}
 		]
 	},

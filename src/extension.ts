@@ -12,9 +12,8 @@ import {
 	getBreakpointFromWorkspace,
 	filterOneTime,
 } from './actions';
-import { Dependency, IgnoreFilesProvider } from './ignoreFiles/provider';
+import { Dependency } from './ignoreFiles/provider';
 import { state } from './State';
-import micromatch from 'micromatch';
 import assert from 'assert';
 
 function makeName(str: string): string {
@@ -155,16 +154,26 @@ function addConditionalBreakpointsOnFile(doc: vscode.TextDocument, regex: RegExp
 	}
 }
 
+function Command(str: string): Promise<any> {
+	return new Promise((res) => {
+		vscode.commands.executeCommand(str).then(() => {
+			res(true);
+		});
+	});
+}
+
 export function activate(context: vscode.ExtensionContext) {
 	state.init();
 
-	state.onStop = async () => {
-		const editor = vscode.window.activeTextEditor;
-		if (!editor) {
+	state.onStop = async (doc) => {
+		if (!doc) {
 			return;
 		}
+
+		assert(state.debuggerStopped == true, 'on stop but debugger not stopped');
+
 		const current = vscode.Uri.file(state.getCurrentPath() ?? '');
-		const filePath = vscode.Uri.file(editor.document.uri.path);
+		const filePath = vscode.Uri.file(doc.uri.path);
 
 		const ignoreRegex = state.configuration().IgnoreBreakpointList();
 
@@ -174,10 +183,23 @@ export function activate(context: vscode.ExtensionContext) {
 			path = path.slice(1);
 		}
 
+		console.log('current path', path);
+
 		if (state.match(path, ignoreRegex)) {
-			await vscode.commands.executeCommand('workbench.action.debug.continue').then((f) => {
-				state.debuggerStopped = false;
-			});
+			console.log('skipping the ', path);
+
+			await Command('workbench.action.debug.continue');
+			const currentEditor = vscode.window.activeTextEditor?.document;
+			if (!currentEditor) {
+				return;
+			}
+
+			if (doc.fileName === currentEditor.fileName) {
+				console.log('closing', doc.fileName);
+				await Command('workbench.action.closeActiveEditor');
+			}
+		} else {
+			console.log('did not contain ', ignoreRegex);
 		}
 	};
 
@@ -240,17 +262,16 @@ export function activate(context: vscode.ExtensionContext) {
 			state.session = session;
 			return {
 				onDidSendMessage: async (message) => {
-					if (message.command === 'continue') {
+					console.log(message);
+					if (message.command === 'continue' || message.event === 'continued') {
 						state.debuggerStopped = false;
 					}
 					if (message.event === 'stopped') {
 						state.debuggerStopped = true;
 
-						state.onStop();
+						await state.onStop(vscode.window.activeTextEditor?.document);
 
 						if (message.body.reason === 'breakpoint') {
-							state.debuggerStopped = true;
-
 							const hitIds: number[] = message.body.hitBreakpointIds;
 
 							assert(
@@ -281,6 +302,12 @@ export function activate(context: vscode.ExtensionContext) {
 				},
 			};
 		},
+	});
+
+	addCommand(makeName('debug.continue'), () => {
+		if (state.debuggerStopped === true) {
+			vscode.commands.executeCommand('workbench.action.debug.continue');
+		}
 	});
 
 	addCommand(makeName('addTriggered'), () => {
