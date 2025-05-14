@@ -1,9 +1,5 @@
 # Change Log
 
-All notable changes to the "debugpoints" extension will be documented in this file.
+## [0.0.10]
 
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
-
-## [Unreleased]
-
-- Initial release
+-    Added the `debug.continue` command that allows you to continue the debugging process only when the debugger is stopped. (Some debuggers will break if you try to continue on and not paused debugger)
